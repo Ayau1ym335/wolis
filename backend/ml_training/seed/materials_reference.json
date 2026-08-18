@@ -1,0 +1,178 @@
+[
+  {
+    "category": "Изоляция",
+    "name": "Утеплитель РОКЛАЙТ 50 мм, Технониколь",
+    "unit": "m²",
+    "unit_price": 1585,
+    "region": "KZ",
+    "level": "eco"
+  },
+  {
+    "category": "Изоляция",
+    "name": "Пеноплэкс Комфорт (XPS) 50 мм",
+    "unit": "m²",
+    "unit_price": 2150,
+    "region": "KZ",
+    "level": "optimal"
+  },
+  {
+    "category": "Конструктив",
+    "name": "Плита OSB-3 12 мм, 1250x2500",
+    "unit": "m²",
+    "unit_price": 2176,
+    "region": "KZ",
+    "level": "low_cost"
+  },
+  {
+    "category": "Конструктив",
+    "name": "Гипсокартон Knauf 12,5 мм, 1200x2500",
+    "unit": "m²",
+    "unit_price": 1110,
+    "region": "KZ",
+    "level": "optimal"
+  },
+  {
+    "category": "Вяжущее",
+    "name": "Цемент М450, Семей, 50 кг",
+    "unit": "kg",
+    "unit_price": 56,
+    "region": "KZ",
+    "level": "low_cost"
+  },
+  {
+    "category": "Штукатурка (ремонт)",
+    "name": "Штукатурка Rotband гипсовая 30 кг, Knauf",
+    "unit": "kg",
+    "unit_price": 113,
+    "region": "KZ",
+    "level": "low_cost"
+  },
+  {
+    "category": "Фасад / отделка",
+    "name": "Декоративная штукатурка СТ35 Короед 25 кг, Ceresit",
+    "unit": "m²",
+    "unit_price": 909,
+    "region": "KZ",
+    "level": "optimal"
+  },
+  {
+    "category": "Гидроизоляция",
+    "name": "Гидроизоляционная масса CR65 цементная 25 кг, Ceresit",
+    "unit": "m²",
+    "unit_price": 1850,
+    "region": "KZ",
+    "level": "optimal"
+  },
+  {
+    "category": "Армирование",
+    "name": "Сетка кладочная 1000x2000 мм, ячейка 150x150",
+    "unit": "m²",
+    "unit_price": 495,
+    "region": "KZ",
+    "level": "optimal"
+  },
+  {
+    "category": "Каркас",
+    "name": "Профиль направляющий Knauf 27x28x3000 мм",
+    "unit": "unit",
+    "unit_price": 1650,
+    "region": "KZ",
+    "level": "low_cost"
+  },
+  {
+    "category": "Крепёж утеплителя",
+    "name": "Клей СТ83 для пенополистирольных плит 25 кг, Ceresit",
+    "unit": "kg",
+    "unit_price": 119,
+    "region": "KZ",
+    "level": "optimal"
+  },
+  {
+    "category": "Грунтовка",
+    "name": "Грунтовка CT7 универсальная 10 л, Ceresit",
+    "unit": "l",
+    "unit_price": 412,
+    "region": "KZ",
+    "level": "low_cost"
+  },
+  {
+    "category": "Кладка",
+    "name": "Кирпич строительный М-125 утолщённый",
+    "unit": "unit",
+    "unit_price": 120,
+    "region": "KZ",
+    "level": "low_cost"
+  },
+  {
+    "category": "Кладка / фасад",
+    "name": "Кирпич пустотелый облицовочный ЛККЗ 1НФ М125",
+    "unit": "unit",
+    "unit_price": 280,
+    "region": "KZ",
+    "level": "optimal"
+  },
+  {
+    "category": "Кладка",
+    "name": "Газоблок автоклавный Сибит D600, 625x100x250",
+    "unit": "m³",
+    "unit_price": 22436,
+    "region": "KZ",
+    "level": "eco"
+  },
+  {
+    "category": "Кровля (бюджет)",
+    "name": "Рубероид РКП 350, Технониколь, 1x15 м",
+    "unit": "m²",
+    "unit_price": 239,
+    "region": "KZ",
+    "level": "low_cost"
+  },
+  {
+    "category": "Кровля",
+    "name": "Профлист кровельный Н18 0,45 мм",
+    "unit": "m²",
+    "unit_price": 2080,
+    "region": "KZ",
+    "level": "optimal"
+  },
+  {
+    "category": "Кровля (долговечная)",
+    "name": "Металлочерепица глянцевая 0,4 мм RAL 8017",
+    "unit": "m²",
+    "unit_price": 2155,
+    "region": "KZ",
+    "level": "eco"
+  },
+  {
+    "category": "Армирование (конструктив)",
+    "name": "Арматура композитная 8 мм",
+    "unit": "m",
+    "unit_price": 147,
+    "region": "KZ",
+    "level": "eco"
+  },
+  {
+    "category": "Сыпучие",
+    "name": "Песок строительный",
+    "unit": "kg",
+    "unit_price": 22,
+    "region": "KZ",
+    "level": "low_cost"
+  },
+  {
+    "category": "Крепёж утеплителя",
+    "name": "Дюбель-изомат с пласт. гвоздём 10x160 мм",
+    "unit": "unit",
+    "unit_price": 25,
+    "region": "KZ",
+    "level": "low_cost"
+  },
+  {
+    "category": "Пиломатериал",
+    "name": "Доска обрезная 50x150x6000 мм (стропила/каркас)",
+    "unit": "unit",
+    "unit_price": 6210,
+    "region": "KZ",
+    "level": "optimal"
+  }
+]
