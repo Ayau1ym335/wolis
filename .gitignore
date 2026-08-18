@@ -43,3 +43,4 @@ dist/
 .stylelintcache
 .prettiercache
 *.db
+node_modules/
