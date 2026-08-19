@@ -35,11 +35,10 @@ def upsert_materials(records: list[dict]) -> int:
                 name=record["name"],
                 unit=record["unit"],
                 unit_price=record["unit_price"],
-                region=record.get("region"),
                 category=record.get("category"),
             )
             stmt = stmt.on_conflict_do_update(
-                constraint="uq_material_name_region",
+                constraint="uq_material_name",
                 set_={
                     "unit": stmt.excluded.unit,
                     "unit_price": stmt.excluded.unit_price,

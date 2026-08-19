@@ -3,9 +3,9 @@ import uuid
 from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from db.models.material import Material
-from db.models.solution import Solution
-from db.models.solution_material import SolutionMaterial
+from src.db.models.material import Material
+from src.db.models.solution import Solution
+from src.db.models.solution_material import SolutionMaterial
 
 
 @dataclass(frozen=True)

@@ -2,7 +2,7 @@ from __future__ import annotations
 import uuid
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from db.models.measurement_session import MeasurementSession
+from src.db.models.measurement_session import MeasurementSession
 
 
 class MeasurementRepository:

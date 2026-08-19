@@ -2,7 +2,7 @@ from __future__ import annotations
 import uuid
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from db.models.assessment import Assessment
+from src.db.models.assessment import Assessment
 
 class AssessmentRepository:
     def __init__(self, db: Session) -> None:
