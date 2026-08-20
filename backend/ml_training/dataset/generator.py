@@ -1,25 +1,12 @@
-"""
-
-Core design idea (per the agreed spec): rather than deriving labels directly
-from a fixed formula on the features (which would make the model trivially
-memorize rules.py and defeat the purpose of using ML at all), we introduce a
-hidden latent variable `true_degradation_level` that drives sensor generation.
-rules.py is then applied to the *generated* sensor readings to produce labels,
-same as it would be applied to real sensor readings. This keeps a realistic
-gap between "the underlying condition" and "what the sensors happened to
-read", which is what makes the learning problem non-trivial.
-
-Output: a pandas DataFrame / CSV with one row per synthetic "measurement
-session": building context + sensor readings + engineering-rule-derived
-labels (with a small amount of label noise).
-"""
-
 import argparse
 import os
+import sys
 import numpy as np
 import pandas as pd
 
-from .rules import (
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+
+from ml_training.dataset.rules import (
     Status,
     evaluate_structural,
     evaluate_climate,
@@ -42,17 +29,6 @@ AREA_M2_RANGE = (50.0, 5000.0)
 
 
 def _sample_age_years(rng: np.random.Generator) -> int:
-    """
-    Age is sampled from a mixture that favors younger/mid-age buildings and
-    makes very old buildings comparatively rare, rather than uniform 1-150.
-    Beta(1.6, 3.5) is right-skewed (median well below the mean of the range),
-    scaled to [1, 150] — this keeps most of the sampled stock in a realistic
-    "young to mid-age" band while still allowing a long tail of old/historical
-    buildings, instead of centering the whole distribution around ~75 years.
-    Calibrated empirically against the target overall_status balance (see
-    generate_dataset acceptance check), not against a real building-stock
-    census for the target region.
-    """
     raw = rng.beta(1.6, 3.5)
     age = 1 + raw * 149.0
     return int(round(age))
@@ -60,10 +36,8 @@ def _sample_age_years(rng: np.random.Generator) -> int:
 
 def _sample_building_context(rng: np.random.Generator) -> dict:
     building_type = rng.choice(BUILDING_TYPES, p=BUILDING_TYPE_WEIGHTS)
-
     material_weights = MATERIAL_WEIGHTS_BY_BUILDING_TYPE[building_type]
     material = rng.choice(MATERIALS, p=material_weights)
-
     age_years = _sample_age_years(rng)
     area_m2 = float(rng.uniform(*AREA_M2_RANGE))
     region = rng.choice(REGIONS, p=REGION_WEIGHTS)
@@ -76,59 +50,16 @@ def _sample_building_context(rng: np.random.Generator) -> dict:
         "region": region,
     }
 
-
-# ---------------------------------------------------------------------------
-# Step 2 — hidden true_degradation_level
-# ---------------------------------------------------------------------------
-
 def _sample_true_degradation_level(age_years: int, rng: np.random.Generator) -> float:
-    """
-    Latent, unobserved "ground truth" degradation level in [0, 1], correlated
-    with age but not deterministic — two buildings of the same age can have
-    meaningfully different true condition (maintenance history, workmanship,
-    local conditions — none of which the sensors directly observe).
-
-    Modeled as: a base degradation trend that rises with age (saturating, not
-    linear — most degradation risk accumulates over the first ~80 years),
-    plus independent random noise that can push a given building well above
-    or below that trend.
-    """
-    # Saturating trend: approaches 1.0 as age grows, but slowly — reaches
-    # roughly the midpoint of its range around 60 years, per the exponential
-    # time-constant below.
     age_trend = 1.0 - np.exp(-age_years / 60.0)
-
-    # Individual variance around the trend — this is what decouples age from
-    # degradation deterministically.
     noise = rng.normal(loc=0.0, scale=0.18)
-
-    # Trend contributes at most ~0.65 of the final level; noise can push
-    # further in either direction. Calibrated together with age sampling
-    # above and the tilt/vibration scaling below via a small parameter
-    # sweep against the target ~50/35/15 normal/attention/critical split
-    # from the implementation plan (see calibration note in generate_dataset).
     level = age_trend * 0.65 + noise
     return float(np.clip(level, 0.0, 1.0))
 
-
-# ---------------------------------------------------------------------------
-# Step 3 — sensor value generation from true_degradation_level + context + noise
-# ---------------------------------------------------------------------------
-
-# MPU6050-informed noise scale for tilt: paper-spec-level angular noise is
-# small; this sigma represents realistic measurement jitter, not the full
-# sensor error budget.
-# TODO: replace with the actual measured noise characteristics of the
-# firmware's MPU6050 reading pipeline once available (calibration data),
-# rather than an assumed value.
 TILT_NOISE_SIGMA_DEG = 0.15
 VIBRATION_NOISE_SIGMA = 0.03
+SHOCK_BASE_PROBABILITY = 0.05  
 
-SHOCK_BASE_PROBABILITY = 0.05  # ~5% of rows have a shock event, per spec
-
-# Climate zone base ranges (mean temperature/humidity/pressure), used as the
-# center of the sampling distribution before adding degradation-correlated
-# and seasonal noise.
 # TODO: these are illustrative regional profiles, not sourced from real
 # climate data for the target region — acceptable as noise-shape references
 # per the earlier decision to use public datasets only for calibrating noise,
@@ -154,38 +85,22 @@ def _generate_sensor_readings(
     context: dict,
     rng: np.random.Generator,
 ) -> dict:
-    # --- structural: tilt & vibration driven by degradation, plus noise ---
-    # Quadratic mapping from degradation to tilt/vibration: low-to-moderate
-    # degradation stays well below the attention thresholds, and readings
-    # only climb sharply as degradation approaches the top of its range.
-    # Scale/exponent/age-trend-weight (above) were jointly calibrated via a
-    # small parameter sweep against the target ~50/35/15 overall_status split
-    # from the implementation plan — not derived from a physical model.
-    base_tilt = (true_degradation_level ** 2.0) * 11.0  # up to ~11 deg at full degradation
+    base_tilt = (true_degradation_level ** 2.0) * 11.0 
     tilt_angle_deg = max(0.0, base_tilt + rng.normal(0.0, TILT_NOISE_SIGMA_DEG))
 
     base_vibration = (true_degradation_level ** 2.0) * 0.88
     vibration_magnitude = max(0.0, base_vibration + rng.normal(0.0, VIBRATION_NOISE_SIGMA))
-
-    # shock_detected: rare event, only weakly nudged upward by degradation
-    # (a badly degraded structure is somewhat more prone to shock-triggering
-    # events, but shocks are still mostly independent external occurrences).
     shock_probability = SHOCK_BASE_PROBABILITY + 0.05 * true_degradation_level
     shock_detected = bool(rng.random() < shock_probability)
-
-    # --- climate: mostly climate-zone driven, weak degradation correlation on humidity ---
     profile = CLIMATE_ZONE_PROFILES[context["region"]]
     temperature_c = rng.normal(profile["temp_mean"], profile["temp_sigma"])
     pressure_hpa = rng.normal(profile["pressure_mean"], profile["pressure_sigma"])
 
-    # Degraded buildings tend to retain moisture slightly more (worse
-    # sealing/insulation), modeled as a small upward shift in humidity mean.
     humidity_mean = profile["humidity_mean"] + true_degradation_level * 10.0
     humidity_pct = np.clip(
         rng.normal(humidity_mean, profile["humidity_sigma"]), 0.0, 100.0
     )
 
-    # --- lighting: mostly building-type driven, independent of degradation ---
     base_lux = LIGHTING_BASE_LUX_BY_BUILDING_TYPE[context["building_type"]]
     illuminance_lux = max(0.0, rng.normal(base_lux, LIGHTING_NOISE_SIGMA))
 
@@ -198,11 +113,6 @@ def _generate_sensor_readings(
         "pressure_hpa": round(float(pressure_hpa), 2),
         "illuminance_lux": round(float(illuminance_lux), 1),
     }
-
-
-# ---------------------------------------------------------------------------
-# Step 4 — apply rules.py to get ground-truth labels
-# ---------------------------------------------------------------------------
 
 def _compute_labels(sensor_readings: dict, context: dict) -> dict:
     structural = evaluate_structural(
@@ -230,15 +140,8 @@ def _compute_labels(sensor_readings: dict, context: dict) -> dict:
         "overall_status": overall.value,
     }
 
-
-# ---------------------------------------------------------------------------
-# Step 5 — label noise
-# ---------------------------------------------------------------------------
-
 _STATUS_ORDER = [Status.NORMAL.value, Status.ATTENTION.value, Status.CRITICAL.value]
-
-LABEL_NOISE_RATE = 0.04  # ~4% of rows get one label flipped to a neighbor
-
+LABEL_NOISE_RATE = 0.04 
 
 def _flip_to_neighbor(label: str, rng: np.random.Generator) -> str:
     idx = _STATUS_ORDER.index(label)
@@ -252,13 +155,6 @@ def _flip_to_neighbor(label: str, rng: np.random.Generator) -> str:
 
 
 def _apply_label_noise(labels: dict, rng: np.random.Generator) -> dict:
-    """
-    With LABEL_NOISE_RATE probability, pick one of the four label fields on
-    this row and flip it to an adjacent severity level. Simulates imperfect
-    real-world labeling rather than a mathematically perfect rules.py oracle.
-    Applied independently per row, not per field, so noisy rows are sparse
-    and isolated rather than systematically biasing any one label field.
-    """
     if rng.random() >= LABEL_NOISE_RATE:
         return labels
 
@@ -270,18 +166,7 @@ def _apply_label_noise(labels: dict, rng: np.random.Generator) -> dict:
     return noisy_labels
 
 
-# ---------------------------------------------------------------------------
-# Top-level generation function
-# ---------------------------------------------------------------------------
-
 def generate_dataset(n_rows: int, seed: int) -> pd.DataFrame:
-    """
-    Generate a synthetic dataset of n_rows rows, fully reproducible given the
-    same seed. Each row represents one synthetic measurement session: sampled
-    building context, sensor readings generated from a hidden degradation
-    level + context + noise, and rule-derived labels with a small amount of
-    label noise applied.
-    """
     rng = np.random.default_rng(seed)
     rows = []
 
@@ -306,10 +191,6 @@ def generate_dataset(n_rows: int, seed: int) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-# ---------------------------------------------------------------------------
-# CLI entry point
-# ---------------------------------------------------------------------------
-
 def _print_class_balance(df: pd.DataFrame) -> None:
     print("\nClass balance (overall_status):")
     counts = df["overall_status"].value_counts(normalize=True).round(3)
@@ -323,13 +204,13 @@ def main() -> None:
     parser.add_argument("--n-rows", type=int, default=12000, help="Number of rows to generate.")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility.")
     default_output = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "output", "synthetic_dataset.csv"
+        os.path.dirname(os.path.abspath(__file__)), "synthetic_dataset.csv"
     )
     parser.add_argument(
         "--output",
         type=str,
         default=default_output,
-        help="Output CSV path. Defaults to output/synthetic_dataset.csv next to this script.",
+        help="Output CSV path. Defaults to synthetic_dataset.csv next to this script.",
     )
     args = parser.parse_args()
 

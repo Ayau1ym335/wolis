@@ -3,3 +3,7 @@ psycopg[binary]
 pytest
 python-dotenv
 fastapi
+numpy
+pandas
+scikit-learn
+joblib

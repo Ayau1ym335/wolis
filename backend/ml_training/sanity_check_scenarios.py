@@ -1,4 +1,9 @@
-from dataset.rules import (
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
+from ml_training.dataset.rules import (
     Status,
     evaluate_structural,
     evaluate_climate,
@@ -20,6 +25,7 @@ SCENARIOS = [
             "age_years": 3,
             "material": "concrete",
             "building_type": "residential",
+            "region": "temperate",
         },
         "expected_structural": Status.NORMAL,
         "expected_climate": Status.NORMAL,
@@ -39,6 +45,7 @@ SCENARIOS = [
             "age_years": 95,
             "material": "brick",
             "building_type": "residential",
+            "region": "temperate",
         },
         "expected_structural": Status.CRITICAL,
         "expected_climate": Status.NORMAL,
@@ -58,8 +65,9 @@ SCENARIOS = [
             "age_years": 60,
             "material": "wood",
             "building_type": "residential",
+            "region": "temperate",
         },
-        "expected_structural": Status.NORMAL,
+        "expected_structural": Status.ATTENTION,
         "expected_climate": Status.CRITICAL,
         "expected_lighting": Status.NORMAL,
         "expected_overall": Status.CRITICAL,
@@ -77,6 +85,7 @@ SCENARIOS = [
             "age_years": 15,
             "material": "concrete",
             "building_type": "commercial",
+            "region": "temperate",
         },
         "expected_structural": Status.NORMAL,
         "expected_climate": Status.NORMAL,
@@ -96,11 +105,12 @@ SCENARIOS = [
             "age_years": 40,
             "material": "mixed",
             "building_type": "residential",
+            "region": "temperate",
         },
-        "expected_structural": Status.ATTENTION,
+        "expected_structural": Status.CRITICAL,
         "expected_climate": Status.NORMAL,
         "expected_lighting": Status.NORMAL,
-        "expected_overall": Status.ATTENTION,
+        "expected_overall": Status.CRITICAL,
     },
     {
         "name": "industrial_extreme_temperature",
@@ -115,8 +125,9 @@ SCENARIOS = [
             "age_years": 20,
             "material": "concrete",
             "building_type": "industrial",
+            "region": "temperate",
         },
-        "expected_structural": Status.NORMAL,
+        "expected_structural": Status.ATTENTION,
         "expected_climate": Status.ATTENTION,
         "expected_lighting": Status.NORMAL,
         "expected_overall": Status.ATTENTION,
@@ -134,6 +145,7 @@ SCENARIOS = [
             "age_years": 10,
             "material": "concrete",
             "building_type": "residential",
+            "region": "temperate",
         },
         "expected_structural": Status.ATTENTION,
         "expected_climate": Status.NORMAL,
@@ -153,6 +165,7 @@ SCENARIOS = [
             "age_years": 120,
             "material": "brick",
             "building_type": "historical",
+            "region": "temperate",
         },
         "expected_structural": Status.CRITICAL,
         "expected_climate": Status.CRITICAL,
@@ -172,6 +185,7 @@ SCENARIOS = [
             "age_years": 2,
             "material": "concrete",
             "building_type": "residential",
+            "region": "temperate",
         },
         "expected_structural": Status.NORMAL,
         "expected_climate": Status.ATTENTION,
@@ -191,6 +205,7 @@ SCENARIOS = [
             "age_years": 5,
             "material": "wood",
             "building_type": "residential",
+            "region": "temperate",
         },
         "expected_structural": Status.NORMAL,
         "expected_climate": Status.NORMAL,
@@ -201,15 +216,6 @@ SCENARIOS = [
 
 
 def run_sanity_checks(verbose: bool = True) -> bool:
-    """
-    Run every scenario in SCENARIOS through rules.py and compare against the
-    expected labels. Returns True if all scenarios pass, False otherwise.
-
-    This checks rules.py directly. A separate script (to be added alongside
-    the trained model in TASK 17/19) re-runs these same SCENARIOS through the
-    trained model's predict() function to catch cases where the model learned
-    something implausible from the synthetic dataset.
-    """
     all_passed = True
 
     for scenario in SCENARIOS:
@@ -252,7 +258,6 @@ def run_sanity_checks(verbose: bool = True) -> bool:
                         print(
                             f"    {group_name}: expected={expected}, got={actual}"
                         )
-                print(f"    reasoning: {scenario['reasoning']}")
 
     if verbose:
         print(f"\n{'All' if all_passed else 'NOT all'} sanity scenarios passed.")

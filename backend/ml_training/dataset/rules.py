@@ -84,10 +84,10 @@ def evaluate_structural(
     return _max_severity(tilt_status, vibration_status, shock_status)
 
 CLIMATE_HUMIDITY_THRESHOLDS_BY_MATERIAL = {
-    "wood": {"attention": 16.0, "critical": 20.0},
-    "brick": {"attention": 17.0, "critical": 20.0},
-    "concrete": {"attention": 8.0, "critical": 12.0},
-    "mixed": {"attention": 15.0, "critical": 20.0},
+    "wood": {"attention": 65.0, "critical": 75.0},
+    "brick": {"attention": 70.0, "critical": 80.0},
+    "concrete": {"attention": 75.0, "critical": 85.0},
+    "mixed": {"attention": 70.0, "critical": 80.0},
 }
 
 TEMPERATURE_ATTENTION_RANGE_C = (-15.0, 40.0) 

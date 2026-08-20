@@ -1,0 +1,52 @@
+{
+  "model_version": "v1.0",
+  "trained_at": "2026-08-20T06:15:09.975064+00:00",
+  "dataset_path": "C:\\Users\\user\\Desktop\\wolis\\backend\\ml_training\\dataset\\synthetic_dataset.csv",
+  "dataset_rows": 12000,
+  "train_rows": 8400,
+  "val_rows": 1800,
+  "test_rows": 1800,
+  "feature_columns": [
+    "temperature_c",
+    "humidity_pct",
+    "pressure_hpa",
+    "illuminance_lux",
+    "tilt_angle_deg",
+    "vibration_magnitude",
+    "age_years",
+    "area_m2",
+    "shock_detected",
+    "building_type",
+    "material",
+    "region"
+  ],
+  "encoded_feature_names": [
+    "temperature_c",
+    "humidity_pct",
+    "pressure_hpa",
+    "illuminance_lux",
+    "tilt_angle_deg",
+    "vibration_magnitude",
+    "age_years",
+    "area_m2",
+    "shock_detected",
+    "building_type_commercial",
+    "building_type_historical",
+    "building_type_industrial",
+    "building_type_residential",
+    "material_brick",
+    "material_concrete",
+    "material_mixed",
+    "material_wood",
+    "region_arid",
+    "region_coastal",
+    "region_continental",
+    "region_temperate"
+  ],
+  "target_columns": {
+    "structural": "structural_status",
+    "climate": "climate_status",
+    "lighting": "lighting_status"
+  },
+  "random_state": 42
+}
