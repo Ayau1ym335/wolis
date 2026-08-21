@@ -212,7 +212,7 @@ export function createMockBleAdapter(options: MockBleAdapterOptions = {}): BleAd
       onDeviceFound({ id: "mock-device-001", name: `${DEVICE_NAME_PREFIX}-MOCK` });
     },
  
-    async connect(_deviceId: string) {y
+    async connect(_deviceId: string) {
     },
  
     subscribeToReadings(onReading, _onError) {

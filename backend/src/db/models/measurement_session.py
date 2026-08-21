@@ -1,12 +1,11 @@
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy import ForeignKey, String, Float, Integer, Boolean, DateTime
+from sqlalchemy import ForeignKey, String, Float, Integer, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from .base import Base
+from .base import Base, TimestampMixin
 
 
-class MeasurementSession(Base):
+class MeasurementSession(Base, TimestampMixin):
     __tablename__ = "measurement_sessions"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -14,9 +13,6 @@ class MeasurementSession(Base):
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
     temperature_c: Mapped[float] = mapped_column(Float, nullable=False)

@@ -1,13 +1,12 @@
-import os
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = os.environ.get("WOLIS_DATABASE_URL", "sqlite:///./wolis_local.db")
+from src.config.settings import get_settings
 
-_connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+_database_url = get_settings().database_url
+_connect_args = {"check_same_thread": False} if _database_url.startswith("sqlite") else {}
 
-engine = create_engine(DATABASE_URL, connect_args=_connect_args)
+engine = create_engine(_database_url, connect_args=_connect_args)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 

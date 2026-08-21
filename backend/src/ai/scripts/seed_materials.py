@@ -2,7 +2,7 @@ import json
 import uuid
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from src.db.session import get_session
+from src.db.clients import SessionLocal
 from src.db.models.material import Material
 
 SEED_FILE_PATH = Path(__file__).resolve().parents[2] / "seed" / "materials_reference.json"
@@ -27,7 +27,7 @@ def load_seed_data(path: Path = SEED_FILE_PATH) -> list[dict]:
 
 
 def upsert_materials(records: list[dict]) -> int:
-    session = get_session()
+    session = SessionLocal()
     try:
         for record in records:
             stmt = pg_insert(Material).values(
@@ -59,6 +59,7 @@ def upsert_materials(records: list[dict]) -> int:
 def main():
     records = load_seed_data()
     count = upsert_materials(records)
+
 
 if __name__ == "__main__":
     main()

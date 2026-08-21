@@ -1,24 +1,28 @@
 /**
- * src/features/ble-connection/useBleDevice.ts
+ * src/features/ble_connection/useBleDevice.ts  (live React hook version)
  *
  * TASK 28 — connection state management on top of a BleAdapter.
  *
- * Implementation note: the state-transition logic is implemented as a plain
- * BleDeviceController class, wrapped by a thin useBleDevice() React hook.
- * This lets the transition logic (disconnected -> scanning -> connecting ->
- * connected -> error, and back) be unit-tested directly via
- * BleDeviceController, without needing a React renderer / testing-library in
- * this environment. The hook itself is a straightforward useState +
- * useEffect wrapper around the controller and is not where the risk lives.
+ * The BleDeviceController class lives in the same module as the original
+ * commented skeleton; this file re-exports everything and adds the live
+ * useBleDevice() hook.
  */
 
-import type { BleAdapter, ConnectionStatus, DiscoveredDevice } from "./bleAdapter";
-import type { RawSensorPacket } from "../../types/wolis";
+import { useEffect, useRef, useState } from "react";
+import { env } from "../../config/env";
+import {
+  createMockBleAdapter,
+  createRealBleAdapter,
+  type BleAdapter,
+  type ConnectionStatus,
+  type DiscoveredDevice,
+} from "./bleadapter";
+
+export type { ConnectionStatus, DiscoveredDevice };
 
 export interface BleDeviceState {
   status: ConnectionStatus;
   device: DiscoveredDevice | null;
-  lastReading: RawSensorPacket | null;
   error: string | null;
 }
 
@@ -28,11 +32,9 @@ export class BleDeviceController {
   private state: BleDeviceState = {
     status: "disconnected",
     device: null,
-    lastReading: null,
     error: null,
   };
   private listeners: Set<Listener> = new Set();
-  private unsubscribeReadings: (() => void) | null = null;
 
   constructor(private adapter: BleAdapter) {}
 
@@ -51,14 +53,17 @@ export class BleDeviceController {
   }
 
   async scan(): Promise<void> {
-    this.setState({ status: "scanning", error: null });
+    this.setState({ status: "scanning", error: null, device: null });
     try {
       let found: DiscoveredDevice | null = null;
       await this.adapter.scan((device) => {
-        if (!found) found = device;
+        if (!found) {
+          found = device;
+          this.setState({ device: found });
+        }
       });
       if (found) {
-        this.setState({ device: found, status: "disconnected" });
+        this.setState({ status: "disconnected" });
       } else {
         this.setState({ status: "error", error: "No Sensor Box found nearby." });
       }
@@ -76,46 +81,58 @@ export class BleDeviceController {
     try {
       await this.adapter.connect(this.state.device.id);
       this.setState({ status: "connected" });
-      this.unsubscribeReadings = this.adapter.subscribeToReadings(
-        (packet) => this.setState({ lastReading: packet }),
-        (error) => this.setState({ status: "error", error: error.message })
-      );
     } catch (e) {
       this.setState({ status: "error", error: (e as Error).message });
     }
   }
 
   async disconnect(): Promise<void> {
-    if (this.unsubscribeReadings) {
-      this.unsubscribeReadings();
-      this.unsubscribeReadings = null;
-    }
     await this.adapter.disconnect();
-    this.setState({ status: "disconnected", device: null, lastReading: null, error: null });
+    this.setState({ status: "disconnected", device: null, error: null });
+  }
+
+  getAdapter(): BleAdapter {
+    return this.adapter;
   }
 }
 
 // ---------------------------------------------------------------------------
-// Thin React hook wrapper — shown as a comment, not exercised by this
-// environment's test suite (no React renderer available here). All actual
-// logic lives in BleDeviceController above, which IS tested.
+// Factory — selects mock or real adapter based on env flag
 // ---------------------------------------------------------------------------
+function buildAdapter(): BleAdapter {
+  if (env.USE_MOCK_BLE) {
+    return createMockBleAdapter({ intervalMs: 1200 });
+  }
+  // In a real RN project: import { BleManager } from "react-native-ble-plx";
+  // const manager = new BleManager();
+  // return createRealBleAdapter(manager);
+  throw new Error("Real BLE not configured. Set USE_MOCK_BLE=true or provide a BleManager.");
+}
 
-// import { useEffect, useRef, useState } from "react";
-//
-// export function useBleDevice(adapter: BleAdapter) {
-//   const controllerRef = useRef<BleDeviceController>();
-//   if (!controllerRef.current) controllerRef.current = new BleDeviceController(adapter);
-//   const controller = controllerRef.current;
-//
-//   const [state, setState] = useState<BleDeviceState>(controller.getState());
-//
-//   useEffect(() => controller.subscribe(setState), [controller]);
-//
-//   return {
-//     ...state,
-//     scan: () => controller.scan(),
-//     connect: () => controller.connect(),
-//     disconnect: () => controller.disconnect(),
-//   };
-// }
+// ---------------------------------------------------------------------------
+// React hook
+// ---------------------------------------------------------------------------
+export function useBleDevice() {
+  const controllerRef = useRef<BleDeviceController | null>(null);
+
+  if (!controllerRef.current) {
+    const adapter = buildAdapter();
+    controllerRef.current = new BleDeviceController(adapter);
+  }
+
+  const controller = controllerRef.current;
+
+  const [state, setState] = useState<BleDeviceState>(controller.getState());
+
+  useEffect(() => {
+    return controller.subscribe(setState);
+  }, [controller]);
+
+  return {
+    ...state,
+    scan: () => controller.scan(),
+    connect: () => controller.connect(),
+    disconnect: () => controller.disconnect(),
+    adapter: controller.getAdapter(),
+  };
+}

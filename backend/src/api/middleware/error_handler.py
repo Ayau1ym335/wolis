@@ -9,7 +9,7 @@ from src.api.exceptions import (
 )
 from src.types.api_schemas import ErrorResponse
 
- 
+
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(ValidationError)
     async def handle_validation_error(request: Request, exc: ValidationError) -> JSONResponse:
