@@ -1,15 +1,27 @@
 /**
  * features/measurement/useMeasurementSession.ts
  *
- * TASK 31 — manages a live measurement session:
- *   • subscribes to BLE readings from the provided adapter
- *   • accumulates packets and exposes the latest one in real time
- *   • tracks session lifecycle: idle → recording → stopped
- *   • on stop, submits the averaged packet to the backend
+ * TASK 31 — manages a live measurement session.
+ * TASK 40 — updated to use BleDeviceController.subscribeToReadings()
+ *            which auto-triggers reconnect on BLE disconnect.
+ *
+ * Changes from TASK 40:
+ *   - Accepts { controller, adapter } instead of just adapter, so it can
+ *     call the controller's subscribeToReadings wrapper (which has
+ *     reconnect built in) rather than calling the adapter directly.
+ *   - When BLE disconnects mid-session the status stays "recording" until
+ *     reconnect either succeeds (subscription resumes automatically) or
+ *     the controller gives up (status → "error").
+ *   - The collected packets ref is NOT cleared on BLE error, so no data is
+ *     lost during the reconnect window.
+ *
+ * Back-compat: still accepts a plain BleAdapter for usages that don't
+ * have a controller reference (e.g. unit tests).
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BleAdapter } from "../ble_connection/bleadapter";
+import type { BleDeviceController } from "../ble_connection/useBleDevice";
 import type { RawSensorPacket } from "../../types/wolis";
 
 export type SessionStatus = "idle" | "recording" | "stopped" | "submitting" | "error";
@@ -20,6 +32,8 @@ export interface MeasurementSessionState {
   /** Running count of packets received so far */
   packetCount: number;
   error: string | null;
+  /** True while waiting for BLE to reconnect after an unexpected drop */
+  isReconnecting: boolean;
 }
 
 export interface UseMeasurementSessionResult extends MeasurementSessionState {
@@ -65,50 +79,91 @@ function averagePackets(packets: RawSensorPacket[]): RawSensorPacket {
 }
 
 // ---------------------------------------------------------------------------
+// Hook input — controller preferred (has reconnect), adapter as fallback
+// ---------------------------------------------------------------------------
+export interface MeasurementSessionInput {
+  controller?: BleDeviceController | null;
+  adapter?: BleAdapter | null;
+}
+
+// ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
 export function useMeasurementSession(
-  adapter: BleAdapter | null
+  input: MeasurementSessionInput | BleAdapter | null
 ): UseMeasurementSessionResult & { averagedReading: RawSensorPacket | null } {
+  // Normalise both calling conventions
+  const controller =
+    input && typeof (input as MeasurementSessionInput).controller !== "undefined"
+      ? (input as MeasurementSessionInput).controller ?? null
+      : null;
+  const adapter =
+    input && typeof (input as MeasurementSessionInput).adapter !== "undefined"
+      ? (input as MeasurementSessionInput).adapter ?? null
+      : (input as BleAdapter | null);
+
   const [state, setState] = useState<MeasurementSessionState>({
     status: "idle",
     latestReading: null,
     packetCount: 0,
     error: null,
+    isReconnecting: false,
   });
 
   const collectedRef = useRef<RawSensorPacket[]>([]);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
   const startSession = useCallback(() => {
-    if (!adapter) {
-      setState((s) => ({ ...s, status: "error", error: "No BLE adapter — device not connected." }));
+    if (!adapter && !controller) {
+      setState((s) => ({ ...s, status: "error", error: "Нет BLE-адаптера — устройство не подключено.", isReconnecting: false }));
       return;
     }
     collectedRef.current = [];
-    setState({ status: "recording", latestReading: null, packetCount: 0, error: null });
+    setState({ status: "recording", latestReading: null, packetCount: 0, error: null, isReconnecting: false });
 
-    unsubscribeRef.current = adapter.subscribeToReadings(
-      (packet) => {
-        collectedRef.current.push(packet);
-        setState((s) => ({
-          ...s,
-          latestReading: packet,
-          packetCount: collectedRef.current.length,
-        }));
-      },
-      (error) => {
-        setState((s) => ({ ...s, status: "error", error: error.message }));
-        unsubscribeRef.current?.();
-        unsubscribeRef.current = null;
-      }
-    );
-  }, [adapter]);
+    const onReading = (packet: RawSensorPacket) => {
+      collectedRef.current.push(packet);
+      setState((s) => ({
+        ...s,
+        latestReading: packet,
+        packetCount: collectedRef.current.length,
+        // Clear reconnecting flag once packets flow again
+        isReconnecting: false,
+      }));
+    };
+
+    const onError = (error: Error) => {
+      // Don't move to "error" yet — controller retry loop will try to reconnect.
+      // Just mark isReconnecting so UI can show the retry indicator.
+      setState((s) => ({ ...s, isReconnecting: true }));
+    };
+
+    const onReconnected = () => {
+      // Controller successfully reconnected. Re-subscribe automatically happens
+      // inside BleDeviceController.subscribeToReadings, so we just clear the flag.
+      setState((s) => ({ ...s, isReconnecting: false }));
+    };
+
+    if (controller) {
+      // Preferred path: use controller wrapper (auto-reconnect built in)
+      unsubscribeRef.current = controller.subscribeToReadings(onReading, onError, onReconnected);
+    } else if (adapter) {
+      // Fallback: direct adapter (no auto-reconnect)
+      unsubscribeRef.current = adapter.subscribeToReadings(
+        onReading,
+        (error) => {
+          setState((s) => ({ ...s, status: "error", error: error.message, isReconnecting: false }));
+          unsubscribeRef.current?.();
+          unsubscribeRef.current = null;
+        }
+      );
+    }
+  }, [adapter, controller]);
 
   const stopSession = useCallback(() => {
     unsubscribeRef.current?.();
     unsubscribeRef.current = null;
-    setState((s) => ({ ...s, status: "stopped" }));
+    setState((s) => ({ ...s, status: "stopped", isReconnecting: false }));
   }, []);
 
   // Cleanup on unmount

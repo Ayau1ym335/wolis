@@ -1,31 +1,20 @@
 /**
  * app/WolisNavigator.tsx
  *
- * TASK 33 — Submit flow integration.
+ * TASK 33 + TASK 36 update — wraps the full app flow with authentication.
  *
- * Wires together the complete end-to-end path:
+ * Boot sequence:
+ *   1. initializeAuth() → restores persisted session / attaches token
+ *   2. AuthStatus "loading"       → splash/spinner
+ *   3. AuthStatus "unauthenticated" → LoginScreen
+ *   4. AuthStatus "authenticated"   → measurement flow
  *
- *   DeviceConnectionScreen
- *     → MeasurementScreen          (BLE live readings)
- *       → BuildingContextFormScreen (building metadata form)
- *         → [submitting…]           (calls measurementsApi.submit)
- *           → ResultsScreen         (displays WolisResult)
- *
- * This file is a self-contained stack navigator that manages:
- *   • BLE adapter lifecycle (one useBleDevice instance for the whole stack)
- *   • RawSensorPacket hand-off from MeasurementScreen → BuildingContextFormScreen
- *   • API call (measurementsApi.submit) with loading + error states
- *   • WolisResult hand-off to ResultsScreen
- *
- * No React Navigation required — screen transitions are driven by a simple
- * discriminated-union flow state so the navigator can be embedded anywhere
- * (bare RN, Expo, or wrapped in a Navigator later).
- *
- * If you are using React Navigation, replace the conditional rendering with
- * Stack.Navigator screens and pass props via route.params.
+ * Measurement flow (unchanged from TASK 33):
+ *   DeviceConnectionScreen → MeasurementScreen
+ *     → BuildingContextFormScreen → [submitting] → ResultsScreen
  */
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -35,16 +24,19 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useAuth, initializeAuth } from "../features/auth/useAuth";
 import { useBleDevice } from "../features/ble_connection/useBleDevice";
 import { submit as submitMeasurement } from "../services/measurementsApi";
+import { ApiError } from "../services/apiClient";
 import type { BuildingContextFormValues, RawSensorPacket, WolisResult } from "../types/wolis";
 import { Colors, Radius, Shadow, Spacing } from "../theme";
 
-// Lazy imports to keep initial bundle lean
+const LoginScreen = React.lazy(() => import("../screens/LoginScreen"));
 const DeviceConnectionScreen = React.lazy(() => import("../screens/DeviceConnectionScreen"));
 const MeasurementScreen = React.lazy(() => import("../screens/MeasurementScreen"));
 const BuildingContextFormScreen = React.lazy(() => import("../screens/BuildingContextFormScreen"));
 const ResultsScreen = React.lazy(() => import("../screens/ResultsScreen"));
+const ReportPreviewScreen = React.lazy(() => import("../screens/ReportPreviewScreen"));
 
 // ─── Flow state ───────────────────────────────────────────────────────────────
 type FlowStep =
@@ -53,7 +45,33 @@ type FlowStep =
   | { step: "form"; reading: RawSensorPacket }
   | { step: "submitting"; reading: RawSensorPacket; context: BuildingContextFormValues }
   | { step: "results"; result: WolisResult }
+  | { step: "report"; result: WolisResult; sessionId: string }
   | { step: "error"; message: string; fromStep: FlowStep };
+
+// ─── Splash / loading screen ──────────────────────────────────────────────────
+function SplashScreen() {
+  return (
+    <SafeAreaView style={splashStyles.safe}>
+      <View style={splashStyles.center}>
+        <View style={splashStyles.logoRow}>
+          <Text style={splashStyles.logoL}>W</Text>
+          <View style={splashStyles.logoO}><View style={splashStyles.logoOIn} /></View>
+          <Text style={splashStyles.logoL}>LIS</Text>
+        </View>
+        <ActivityIndicator color={Colors.maroon} style={{ marginTop: 32 }} />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const splashStyles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: Colors.offwhite },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  logoRow: { flexDirection: "row", alignItems: "center", gap: 2 },
+  logoL: { fontFamily: "System", fontWeight: "900", fontSize: 42, color: Colors.ink, letterSpacing: -1 },
+  logoO: { width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.maroon, alignItems: "center", justifyContent: "center" },
+  logoOIn: { width: 9, height: 18, backgroundColor: Colors.white, borderRadius: 3 },
+});
 
 // ─── Submitting overlay ───────────────────────────────────────────────────────
 function SubmittingOverlay() {
@@ -74,29 +92,11 @@ const overlayStyles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.offwhite },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: Spacing.xl },
   card: {
-    width: "100%",
-    backgroundColor: Colors.white,
-    borderRadius: Radius.xl,
-    padding: Spacing.xxl,
-    alignItems: "center",
-    gap: Spacing.md,
-    ...Shadow.elevated,
+    width: "100%", backgroundColor: Colors.white, borderRadius: Radius.xl,
+    padding: Spacing.xxl, alignItems: "center", gap: Spacing.md, ...Shadow.elevated,
   },
-  title: {
-    fontFamily: "System",
-    fontWeight: "700",
-    fontSize: 18,
-    color: Colors.ink,
-    marginTop: Spacing.md,
-    textAlign: "center",
-  },
-  sub: {
-    fontFamily: "System",
-    fontSize: 13,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 18,
-  },
+  title: { fontFamily: "System", fontWeight: "700", fontSize: 18, color: Colors.ink, marginTop: Spacing.md, textAlign: "center" },
+  sub: { fontFamily: "System", fontSize: 13, color: Colors.textSecondary, textAlign: "center", lineHeight: 18 },
 });
 
 // ─── Error screen ─────────────────────────────────────────────────────────────
@@ -104,9 +104,7 @@ function ErrorScreen({ message, onRetry, onReset }: { message: string; onRetry: 
   return (
     <SafeAreaView style={errStyles.safe}>
       <View style={errStyles.center}>
-        <View style={errStyles.iconCircle}>
-          <Text style={errStyles.icon}>!</Text>
-        </View>
+        <View style={errStyles.iconCircle}><Text style={errStyles.icon}>!</Text></View>
         <Text style={errStyles.title}>Ошибка</Text>
         <Text style={errStyles.message}>{message}</Text>
         <TouchableOpacity style={errStyles.btnPrimary} onPress={onRetry} activeOpacity={0.8}>
@@ -123,43 +121,36 @@ function ErrorScreen({ message, onRetry, onReset }: { message: string; onRetry: 
 const errStyles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.offwhite },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: Spacing.xl },
-  iconCircle: {
-    width: 64, height: 64, borderRadius: 32,
-    backgroundColor: Colors.errorBg,
-    alignItems: "center", justifyContent: "center",
-    marginBottom: Spacing.lg,
-  },
+  iconCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.errorBg, alignItems: "center", justifyContent: "center", marginBottom: Spacing.lg },
   icon: { fontSize: 28, color: Colors.maroon, fontWeight: "700" },
   title: { fontFamily: "System", fontWeight: "700", fontSize: 22, color: Colors.ink, marginBottom: Spacing.sm },
-  message: {
-    fontFamily: "System", fontSize: 13.5, color: Colors.textSecondary,
-    textAlign: "center", lineHeight: 20, marginBottom: Spacing.xl,
-  },
-  btnPrimary: {
-    width: "100%", backgroundColor: Colors.maroon, paddingVertical: 15,
-    borderRadius: Radius.md, alignItems: "center", marginBottom: Spacing.sm, ...Shadow.card,
-  },
+  message: { fontFamily: "System", fontSize: 13.5, color: Colors.textSecondary, textAlign: "center", lineHeight: 20, marginBottom: Spacing.xl },
+  btnPrimary: { width: "100%", backgroundColor: Colors.maroon, paddingVertical: 15, borderRadius: Radius.md, alignItems: "center", marginBottom: Spacing.sm, ...Shadow.card },
   btnText: { fontFamily: "System", fontWeight: "700", fontSize: 14, color: Colors.white },
-  btnGhost: {
-    width: "100%", paddingVertical: 14, borderRadius: Radius.md,
-    alignItems: "center", borderWidth: 1, borderColor: Colors.ink,
-  },
+  btnGhost: { width: "100%", paddingVertical: 14, borderRadius: Radius.md, alignItems: "center", borderWidth: 1, borderColor: Colors.ink },
   btnGhostText: { fontFamily: "System", fontWeight: "600", fontSize: 14, color: Colors.ink },
 });
 
 // ─── Main navigator ───────────────────────────────────────────────────────────
-/**
- * WOLIS_USER_ID — In production, replace with the authenticated user's ID
- * from your auth context / Supabase session.
- */
-const WOLIS_USER_ID = "anon-user";
-
 export default function WolisNavigator() {
+  const auth = useAuth();
   const [flow, setFlow] = useState<FlowStep>({ step: "connect" });
-
   const ble = useBleDevice();
 
-  // ── Submission handler (TASK 33 core) ────────────────────────────────────
+  // Initialize auth on first render (restores persisted session)
+  useEffect(() => {
+    initializeAuth();
+  }, []);
+
+  // Reset flow when user logs out
+  useEffect(() => {
+    if (auth.status === "unauthenticated") {
+      ble.disconnect();
+      setFlow({ step: "connect" });
+    }
+  }, [auth.status]);
+
+  // ── Submission handler ──────────────────────────────────────────────────
   const handleFormSubmit = useCallback(
     async (context: BuildingContextFormValues, reading: RawSensorPacket) => {
       const fromStep: FlowStep = { step: "form", reading };
@@ -168,76 +159,80 @@ export default function WolisNavigator() {
         const result = await submitMeasurement({
           ...reading,
           ...context,
-          user_id: WOLIS_USER_ID,
+          user_id: auth.session?.user_id ?? "anon-user",
         });
         setFlow({ step: "results", result });
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Неизвестная ошибка при отправке данных.";
+        // 401 → sign out and go to login
+        if (err instanceof ApiError && err.status === 401) {
+          await auth.signOut();
+          return;
+        }
+        const message = err instanceof Error ? err.message : "Неизвестная ошибка при отправке данных.";
         setFlow({ step: "error", message, fromStep });
       }
     },
-    []
+    [auth]
   );
 
-  // ── Reset to start ────────────────────────────────────────────────────────
   const resetFlow = useCallback(() => {
     ble.disconnect();
     setFlow({ step: "connect" });
   }, [ble]);
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Render ──────────────────────────────────────────────────────────────
   return (
-    <React.Suspense fallback={<SubmittingOverlay />}>
-      {flow.step === "connect" && (
-        <DeviceConnectionScreen
-          onConnected={() => setFlow({ step: "measure" })}
-        />
-      )}
+    <React.Suspense fallback={<SplashScreen />}>
+      {/* Auth gate */}
+      {auth.status === "loading" && <SplashScreen />}
 
-      {flow.step === "measure" && (
-        <MeasurementScreen
-          adapter={ble.adapter}
-          onBack={() => {
-            ble.disconnect();
-            setFlow({ step: "connect" });
-          }}
-          onSubmit={(reading) => setFlow({ step: "form", reading })}
-        />
-      )}
+      {auth.status === "unauthenticated" || auth.status === "error" ? (
+        <LoginScreen />
+      ) : null}
 
-      {flow.step === "form" && (
-        <BuildingContextFormScreen
-          onBack={() => setFlow({ step: "measure" })}
-          onSubmit={(context) => handleFormSubmit(context, flow.reading)}
-        />
-      )}
-
-      {flow.step === "submitting" && <SubmittingOverlay />}
-
-      {flow.step === "results" && (
-        <ResultsScreen
-          result={flow.result}
-          onBack={() => setFlow({ step: "form", reading: ({} as RawSensorPacket) })}
-          onNewMeasurement={resetFlow}
-        />
-      )}
-
-      {flow.step === "error" && (
-        <ErrorScreen
-          message={flow.message}
-          onRetry={() => {
-            // Go back to the form step with the preserved reading
-            if (flow.fromStep.step === "form") {
-              handleFormSubmit(
-                ({} as BuildingContextFormValues), // user needs to re-fill
-                flow.fromStep.reading
-              );
-            }
-            setFlow(flow.fromStep);
-          }}
-          onReset={resetFlow}
-        />
+      {auth.status === "authenticated" && (
+        <>
+          {flow.step === "connect" && (
+            <DeviceConnectionScreen onConnected={() => setFlow({ step: "measure" })} />
+          )}
+          {flow.step === "measure" && (
+            <MeasurementScreen
+              adapter={ble.adapter}
+              onBack={() => { ble.disconnect(); setFlow({ step: "connect" }); }}
+              onSubmit={(reading) => setFlow({ step: "form", reading })}
+            />
+          )}
+          {flow.step === "form" && (
+            <BuildingContextFormScreen
+              onBack={() => setFlow({ step: "measure" })}
+              onSubmit={(context) => handleFormSubmit(context, flow.reading)}
+            />
+          )}
+          {flow.step === "submitting" && <SubmittingOverlay />}
+          {flow.step === "results" && (
+            <ResultsScreen
+              result={flow.result}
+              onBack={() => setFlow({ step: "form", reading: ({} as RawSensorPacket) })}
+              onNewMeasurement={resetFlow}
+              onExportPdf={(sessionId) =>
+                setFlow({ step: "report", result: flow.result, sessionId })
+              }
+            />
+          )}
+          {flow.step === "report" && (
+            <ReportPreviewScreen
+              sessionId={flow.sessionId}
+              onBack={() => setFlow({ step: "results", result: flow.result })}
+            />
+          )}
+          {flow.step === "error" && (
+            <ErrorScreen
+              message={flow.message}
+              onRetry={() => setFlow(flow.fromStep)}
+              onReset={resetFlow}
+            />
+          )}
+        </>
       )}
     </React.Suspense>
   );

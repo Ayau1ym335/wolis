@@ -13,8 +13,9 @@
  * Design: serif heading, mono eyebrows, maroon/blush brand palette.
  */
 
-import React from "react";
+import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -68,10 +69,13 @@ export interface ResultsScreenProps {
   result: WolisResult;
   onNewMeasurement?: () => void;
   onBack?: () => void;
+  /** Called with the session_id when user wants to export PDF */
+  onExportPdf?: (sessionId: string) => void;
 }
 
-export default function ResultsScreen({ result, onNewMeasurement, onBack }: ResultsScreenProps) {
+export default function ResultsScreen({ result, onNewMeasurement, onBack, onExportPdf }: ResultsScreenProps) {
   const { assessment, solutions, measurement } = result;
+  const sessionId = measurement.session_id;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -174,7 +178,7 @@ export default function ResultsScreen({ result, onNewMeasurement, onBack }: Resu
           </View>
         )}
 
-        {/* ── CTA ── */}
+        {/* ── CTAs ── */}
         <TouchableOpacity
           style={styles.btnPrimary}
           onPress={onNewMeasurement}
@@ -184,6 +188,20 @@ export default function ResultsScreen({ result, onNewMeasurement, onBack }: Resu
         >
           <Text style={styles.btnPrimaryText}>Новый замер</Text>
         </TouchableOpacity>
+
+        {/* Export PDF — only shown when we have a session_id */}
+        {sessionId && onExportPdf && (
+          <TouchableOpacity
+            style={[styles.btnGhost, { marginTop: Spacing.sm }]}
+            onPress={() => onExportPdf(String(sessionId))}
+            activeOpacity={0.8}
+            accessibilityLabel="Экспорт PDF"
+            accessibilityRole="button"
+            testID="btn-export-pdf"
+          >
+            <Text style={styles.btnGhostText}>↓ Экспорт PDF</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -370,5 +388,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.white,
     letterSpacing: 0.2,
+  },
+  btnGhost: {
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: Radius.md,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: Colors.ink,
+  },
+  btnGhostText: {
+    fontFamily: "System",
+    fontWeight: "600",
+    fontSize: 14,
+    color: Colors.ink,
   },
 });

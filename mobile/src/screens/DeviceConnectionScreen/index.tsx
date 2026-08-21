@@ -36,11 +36,12 @@ import { DEVICE_NAME_PREFIX } from "../../features/ble_connection/bleadapter";
 const SENSOR_CHIPS = ["BME280", "BH1750", "MPU6050", "SW-420"] as const;
 
 // ─── Status metadata ──────────────────────────────────────────────────────────
-const STATUS_META = {
+const STATUS_META: Record<string, { label: string; color: string }> = {
   disconnected: { label: "Не подключён", color: Colors.textSecondary },
   scanning: { label: "Сканирование…", color: Colors.warning },
   connecting: { label: "Подключение…", color: Colors.warning },
   connected: { label: "Подключён", color: Colors.success },
+  reconnecting: { label: "Переподключение…", color: Colors.warning },
   error: { label: "Ошибка", color: Colors.error },
 } as const;
 
@@ -111,13 +112,14 @@ export interface DeviceConnectionScreenProps {
 }
 
 export default function DeviceConnectionScreen({ onConnected }: DeviceConnectionScreenProps) {
-  const { status, device, error, scan, connect, disconnect } = useBleDevice();
+  const { status, device, error, scan, connect, disconnect, retryAttempt, maxRetryAttempts } = useBleDevice();
 
   const statusMeta = STATUS_META[status] ?? STATUS_META.disconnected;
   const isScanning = status === "scanning";
   const isConnecting = status === "connecting";
+  const isReconnecting = status === "reconnecting";
   const isConnected = status === "connected";
-  const isBusy = isScanning || isConnecting;
+  const isBusy = isScanning || isConnecting || isReconnecting;
   const hasDevice = device !== null;
 
   // Dot blink when busy
@@ -183,6 +185,31 @@ export default function DeviceConnectionScreen({ onConnected }: DeviceConnection
         {status === "error" && error && (
           <View style={styles.errorBanner} accessibilityRole="alert">
             <Text style={styles.errorBannerText}>{error}</Text>
+          </View>
+        )}
+
+        {/* ── Reconnecting banner (TASK 40) ── */}
+        {isReconnecting && (
+          <View style={styles.reconnectBanner} accessibilityRole="status">
+            <View style={styles.reconnectRow}>
+              <Text style={styles.reconnectTitle}>Потеряно соединение</Text>
+              <Text style={styles.reconnectAttempts}>
+                {retryAttempt + 1} / {maxRetryAttempts}
+              </Text>
+            </View>
+            <Text style={styles.reconnectSub}>
+              Автоматическое переподключение к Sensor Box…{"\n"}
+              Убедитесь, что устройство включено и рядом.
+            </Text>
+            {/* Progress bar */}
+            <View style={styles.reconnectTrack}>
+              <View
+                style={[
+                  styles.reconnectFill,
+                  { width: `${((retryAttempt + 1) / maxRetryAttempts) * 100}%` as any },
+                ]}
+              />
+            </View>
           </View>
         )}
 
@@ -505,4 +532,53 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 18,
   },
+
+  // Reconnect banner (TASK 40)
+  reconnectBanner: {
+    width: "100%",
+    backgroundColor: Colors.warningBg,
+    borderRadius: Radius.md,
+    borderWidth: 1.5,
+    borderColor: Colors.warning,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  reconnectRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Spacing.xs,
+  },
+  reconnectTitle: {
+    fontFamily: "System",
+    fontWeight: "700",
+    fontSize: 13,
+    color: Colors.warning,
+  },
+  reconnectAttempts: {
+    fontFamily: "System",
+    fontSize: 12,
+    color: Colors.warning,
+    fontWeight: "600",
+  },
+  reconnectSub: {
+    fontFamily: "System",
+    fontSize: 11.5,
+    color: Colors.warning,
+    lineHeight: 17,
+    marginBottom: Spacing.sm,
+  },
+  reconnectTrack: {
+    width: "100%",
+    height: 4,
+    backgroundColor: "rgba(196,120,26,0.2)",
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  reconnectFill: {
+    height: "100%",
+    backgroundColor: Colors.warning,
+    borderRadius: 2,
+  },
 });
+

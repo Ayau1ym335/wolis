@@ -1,9 +1,18 @@
 from __future__ import annotations
-from uuid import UUID
+import uuid
 from datetime import datetime, timezone
+from fastapi import HTTPException, status as http_status
 
 from ..db.repositories.measurement_repository import MeasurementRepository
-from ..types.api_schemas import MeasurementCreateRequest, MeasurementCreateResponse
+from ..db.repositories.assessment_repository import AssessmentRepository
+from ..db.repositories.solution_repository import SolutionRepository
+from ..types.api_schemas import (
+    MeasurementCreateRequest,
+    MeasurementCreateResponse,
+    MeasurementHistoryItem,
+    MeasurementResultResponse,
+    SolutionResultItem,
+)
 from ..types.building_context import BuildingContext
 from ..types.sensor_data import SensorData
 
@@ -12,12 +21,19 @@ STATUS_PARTIAL = "partial"
 
 
 class MeasurementService:
-    def __init__(self, measurement_repository: MeasurementRepository) -> None:
+    def __init__(
+        self,
+        measurement_repository: MeasurementRepository,
+        assessment_repository: AssessmentRepository | None = None,
+        solution_repository: SolutionRepository | None = None,
+    ) -> None:
         self._measurement_repository = measurement_repository
+        self._assessment_repository = assessment_repository
+        self._solution_repository = solution_repository
 
     async def create_measurement(
         self,
-        user_id: UUID,
+        user_id: uuid.UUID,
         request: MeasurementCreateRequest,
     ) -> MeasurementCreateResponse:
         status = self._determine_status(request.sensor_data)
@@ -45,6 +61,119 @@ class MeasurementService:
             session_id=session_id,
             status=status,
             created_at=datetime.now(timezone.utc),
+        )
+
+    async def list_measurements(
+        self,
+        user_id: uuid.UUID,
+    ) -> list[MeasurementHistoryItem]:
+        """Return all sessions for this user, newest first, with denormalised risk status."""
+        sessions = self._measurement_repository.get_by_user(user_id)
+        items: list[MeasurementHistoryItem] = []
+
+        for session in sessions:
+            overall_status = None
+            overall_risk_score = None
+
+            # Attach assessment summary if available
+            if self._assessment_repository:
+                assessment = self._assessment_repository.get_by_session_id(session.id)
+                if assessment:
+                    overall_status = assessment.overall_status
+                    overall_risk_score = assessment.overall_risk_score
+
+            items.append(
+                MeasurementHistoryItem(
+                    session_id=session.id,
+                    building_type=session.building_type,
+                    building_age_years=session.building_age_years,
+                    construction_material=session.construction_material,
+                    building_area_m2=session.building_area_m2,
+                    region=session.region,
+                    status=session.status,
+                    created_at=session.created_at,
+                    overall_status=overall_status,
+                    overall_risk_score=overall_risk_score,
+                )
+            )
+
+        return items
+
+    async def get_measurement_result(
+        self,
+        session_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> MeasurementResultResponse:
+        """Return full result for a session.  Raises 404 if not found or not owned by user."""
+        session = self._measurement_repository.get_by_id(session_id)
+        if not session or session.user_id != user_id:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail={"error": "not_found", "message": "Session not found."},
+            )
+
+        measurement = MeasurementHistoryItem(
+            session_id=session.id,
+            building_type=session.building_type,
+            building_age_years=session.building_age_years,
+            construction_material=session.construction_material,
+            building_area_m2=session.building_area_m2,
+            region=session.region,
+            status=session.status,
+            created_at=session.created_at,
+        )
+
+        assessment_domain = None
+        solutions: list[SolutionResultItem] = []
+
+        if self._assessment_repository:
+            assessment_row = self._assessment_repository.get_by_session_id(session_id)
+            if assessment_row:
+                from ..types.assessment import AssessmentResult
+                assessment_domain = AssessmentResult.model_validate({
+                    "overall_risk_score": assessment_row.overall_risk_score,
+                    "overall_status": assessment_row.overall_status,
+                    "confidence": assessment_row.confidence,
+                    "ml_model_used": assessment_row.ml_model_used,
+                    "model_version": assessment_row.model_version,
+                    "parameter_flags": assessment_row.parameter_flags,
+                    "key_concerns": assessment_row.key_concerns,
+                })
+                measurement.overall_status = assessment_row.overall_status
+                measurement.overall_risk_score = assessment_row.overall_risk_score
+
+                if self._solution_repository:
+                    sol_rows = self._solution_repository.get_by_assessment_id(assessment_row.id)
+                    for sw in sol_rows:
+                        line_items = [
+                            {
+                                "material_name": sm.material.name,
+                                "quantity": sm.quantity,
+                                "unit": sm.material.unit,
+                                "unit_price_at_calculation": sm.unit_price_at_calculation,
+                                "is_estimated_price": sm.material.is_estimated_price,
+                                "line_cost": sm.quantity * sm.unit_price_at_calculation,
+                            }
+                            for sm in sw.materials
+                        ]
+                        solutions.append(
+                            SolutionResultItem(
+                                type=sw.solution.type,
+                                required_changes=sw.solution.required_changes or [],
+                                estimated_cost_amount=float(sw.solution.cost_amount),
+                                estimated_cost_currency=sw.solution.cost_currency,
+                                estimated_savings_money=float(sw.solution.savings_money),
+                                estimated_savings_resources_description=(
+                                    sw.solution.savings_resources_description or ""
+                                ),
+                                material_line_items=line_items,
+                            )
+                        )
+
+        return MeasurementResultResponse(
+            measurement=measurement,
+            assessment=assessment_domain,
+            solutions=solutions,
         )
 
     @staticmethod

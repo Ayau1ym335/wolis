@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wolis — Отчёт об обследовании {{ session_id[:8] }}</title>
+<style>
+  /* ── Variables ── */
+  :root {
+    --maroon: #731919;
+    --ink: #141616;
+    --offwhite: #f5f5f7;
+    --blush-light: #e1cadb;
+    --blush-dark: #8c6d84;
+    --border: #e4dcd8;
+    --text-sec: #8c7680;
+    --success: #2d7d5a;
+    --success-bg: #d4ede4;
+    --warning: #c4781a;
+    --warning-bg: #f9e9cf;
+    --error-bg: #fff0f0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 11pt;
+    color: var(--ink);
+    background: #ffffff;
+    padding: 0;
+  }
+
+  /* ── Page layout ── */
+  .page { width: 210mm; min-height: 297mm; padding: 18mm 18mm 14mm; }
+
+  /* ── Header ── */
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24pt; border-bottom: 2pt solid var(--ink); padding-bottom: 10pt; }
+  .logo-row { display: flex; align-items: center; gap: 4pt; }
+  .logo-text { font-size: 26pt; font-weight: 900; letter-spacing: -1pt; color: var(--ink); }
+  .logo-circle { width: 22pt; height: 22pt; border-radius: 11pt; background: var(--maroon); display: inline-flex; align-items: center; justify-content: center; margin: 0 1pt; }
+  .logo-inner { width: 6pt; height: 12pt; background: white; border-radius: 2pt; }
+  .header-right { text-align: right; }
+  .doc-title { font-size: 10pt; color: var(--maroon); font-weight: 700; letter-spacing: .5pt; text-transform: uppercase; margin-bottom: 3pt; }
+  .doc-meta { font-size: 8.5pt; color: var(--text-sec); line-height: 1.6; }
+
+  /* ── Section ── */
+  .section { margin-bottom: 18pt; }
+  .section-title { font-size: 8pt; font-weight: 700; letter-spacing: 1pt; text-transform: uppercase; color: var(--maroon); margin-bottom: 8pt; border-bottom: .5pt solid var(--border); padding-bottom: 4pt; }
+
+  /* ── Two-column grid ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; }
+
+  /* ── Info cell ── */
+  .info-cell { background: var(--offwhite); border-radius: 5pt; padding: 8pt 10pt; }
+  .ic-label { font-size: 7.5pt; color: var(--text-sec); letter-spacing: .4pt; margin-bottom: 2pt; text-transform: uppercase; }
+  .ic-value { font-size: 12pt; font-weight: 700; color: var(--ink); }
+
+  /* ── Risk gauge ── */
+  .risk-wrap { display: flex; align-items: center; gap: 10pt; margin-bottom: 10pt; }
+  .risk-track { flex: 1; height: 8pt; background: var(--border); border-radius: 4pt; overflow: hidden; }
+  .risk-fill { height: 100%; border-radius: 4pt; }
+  .risk-score { font-size: 18pt; font-weight: 900; min-width: 36pt; text-align: right; }
+
+  /* ── Status badge ── */
+  .badge { display: inline-flex; align-items: center; gap: 4pt; padding: 2pt 8pt; border-radius: 100pt; font-size: 8.5pt; font-weight: 700; }
+  .badge-dot { width: 5pt; height: 5pt; border-radius: 50%; }
+  .badge-normal { background: var(--success-bg); color: var(--success); }
+  .badge-normal .badge-dot { background: var(--success); }
+  .badge-attention { background: var(--warning-bg); color: var(--warning); }
+  .badge-attention .badge-dot { background: var(--warning); }
+  .badge-critical { background: var(--error-bg); color: var(--maroon); }
+  .badge-critical .badge-dot { background: var(--maroon); }
+
+  /* ── Parameter flags ── */
+  .flag-row { display: flex; justify-content: space-between; align-items: center; padding: 6pt 8pt; background: var(--offwhite); border-radius: 5pt; margin-bottom: 5pt; }
+  .flag-group { font-weight: 600; font-size: 10pt; }
+  .flag-sensors { font-size: 8pt; color: var(--text-sec); margin-top: 1pt; }
+  .flag-right { text-align: right; }
+  .flag-conf { font-size: 8pt; color: var(--text-sec); margin-top: 2pt; }
+
+  /* ── Concerns list ── */
+  .concern-item { display: flex; gap: 6pt; margin-bottom: 5pt; font-size: 10pt; }
+  .concern-dot { width: 5pt; height: 5pt; border-radius: 50%; background: var(--maroon); flex-shrink: 0; margin-top: 4pt; }
+
+  /* ── Solution card ── */
+  .sol-card { border-radius: 7pt; padding: 10pt 12pt; margin-bottom: 8pt; border: .5pt solid var(--border); page-break-inside: avoid; }
+  .sol-card-white { background: #ffffff; }
+  .sol-card-blush { background: #f0e4ec; }
+  .sol-card-maroon { background: var(--maroon); color: white; }
+  .sol-eyebrow { font-size: 7.5pt; font-weight: 700; letter-spacing: .6pt; text-transform: uppercase; margin-bottom: 2pt; }
+  .sol-card-white .sol-eyebrow { color: var(--blush-dark); }
+  .sol-card-blush .sol-eyebrow { color: var(--blush-dark); }
+  .sol-card-maroon .sol-eyebrow { color: #e3b9b9; }
+  .sol-name { font-size: 16pt; font-weight: 900; letter-spacing: -.5pt; margin-bottom: 4pt; }
+  .sol-card-maroon .sol-name { color: white; }
+  .sol-price-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8pt; }
+  .sol-price { font-size: 13pt; font-weight: 700; }
+  .sol-card-maroon .sol-price { color: white; }
+  .sol-savings { font-size: 8.5pt; }
+  .sol-card-white .sol-savings { color: var(--blush-dark); }
+  .sol-card-blush .sol-savings { color: var(--blush-dark); }
+  .sol-card-maroon .sol-savings { color: #e3b9b9; }
+
+  /* Materials table */
+  .mat-table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-top: 6pt; }
+  .mat-table th { text-align: left; font-size: 7.5pt; font-weight: 700; letter-spacing: .4pt; padding: 4pt 5pt; border-bottom: .5pt solid rgba(0,0,0,.15); }
+  .mat-table td { padding: 4pt 5pt; border-bottom: .5pt solid rgba(0,0,0,.08); vertical-align: middle; }
+  .sol-card-maroon .mat-table th { color: #e3b9b9; border-bottom-color: rgba(255,255,255,.25); }
+  .sol-card-maroon .mat-table td { color: white; border-bottom-color: rgba(255,255,255,.15); }
+
+  /* Changes list */
+  .changes-list { margin-top: 6pt; }
+  .change-item { display: flex; gap: 5pt; margin-bottom: 4pt; font-size: 9.5pt; }
+  .change-dot { width: 4pt; height: 4pt; border-radius: 50%; background: var(--maroon); flex-shrink: 0; margin-top: 4pt; }
+  .sol-card-maroon .change-dot { background: #e3b9b9; }
+  .sol-card-maroon .change-item { color: white; }
+
+  /* ── Footer ── */
+  .footer { margin-top: 24pt; border-top: .5pt solid var(--border); padding-top: 8pt; display: flex; justify-content: space-between; font-size: 7.5pt; color: var(--text-sec); }
+
+  @media print {
+    body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .page { padding: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ══ HEADER ══ -->
+  <div class="header">
+    <div>
+      <div class="logo-row">
+        <span class="logo-text">W</span>
+        <span class="logo-circle"><div class="logo-inner"></div></span>
+        <span class="logo-text">LIS</span>
+      </div>
+      <div style="font-size:7.5pt;letter-spacing:2pt;color:var(--blush-dark);margin-top:3pt;">WHERE BUILDINGS MEET THE FUTURE</div>
+    </div>
+    <div class="header-right">
+      <div class="doc-title">Отчёт об обследовании</div>
+      <div class="doc-meta">
+        ID сессии: {{ session_id }}<br>
+        Сформирован: {{ generated_at }}<br>
+        Пользователь: {{ user_id }}
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ОБЪЕКТ ══ -->
+  <div class="section">
+    <div class="section-title">Объект</div>
+    <div class="grid-2">
+      <div class="info-cell">
+        <div class="ic-label">Тип здания</div>
+        <div class="ic-value">{{ building_type_label }}</div>
+      </div>
+      <div class="info-cell">
+        <div class="ic-label">Основной материал</div>
+        <div class="ic-value">{{ material_label }}</div>
+      </div>
+      <div class="info-cell">
+        <div class="ic-label">Возраст здания</div>
+        <div class="ic-value">{{ building_age_years }} лет</div>
+      </div>
+      <div class="info-cell">
+        <div class="ic-label">Площадь</div>
+        <div class="ic-value">{{ building_area_m2 }} м²</div>
+      </div>
+      <div class="info-cell">
+        <div class="ic-label">Регион</div>
+        <div class="ic-value">{{ region_label }}</div>
+      </div>
+      <div class="info-cell">
+        <div class="ic-label">Статус сессии</div>
+        <div class="ic-value">{{ status }}</div>
+      </div>
+    </div>
+  </div>
+
+  {% if assessment %}
+  <!-- ══ ОЦЕНКА РИСКА ══ -->
+  <div class="section">
+    <div class="section-title">Оценка риска</div>
+
+    <div class="risk-wrap">
+      <div class="risk-track">
+        <div class="risk-fill" style="width:{{ assessment.overall_risk_score|round }}%;background:{{ risk_color }};"></div>
+      </div>
+      <div class="risk-score" style="color:{{ risk_color }};">{{ assessment.overall_risk_score|round|int }}</div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10pt;">
+      <span class="badge badge-{{ assessment.overall_status }}">
+        <span class="badge-dot"></span>
+        {{ status_label_map[assessment.overall_status] }}
+      </span>
+      <span style="font-size:9pt;color:var(--text-sec);">
+        Точность: {{ confidence_label_map[assessment.confidence] }}
+        {% if assessment.ml_model_used %} · ML{{ ' v' + assessment.model_version if assessment.model_version else '' }}{% endif %}
+      </span>
+    </div>
+
+    {% if assessment.key_concerns %}
+    <div class="section-title" style="margin-top:10pt;">Ключевые наблюдения</div>
+    <div class="changes-list">
+      {% for concern in assessment.key_concerns %}
+      <div class="concern-item">
+        <div class="concern-dot"></div>
+        <span>{{ concern }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if assessment.parameter_flags %}
+    <div class="section-title" style="margin-top:10pt;">Параметры</div>
+    {% for flag in assessment.parameter_flags %}
+    <div class="flag-row">
+      <div>
+        <div class="flag-group">{{ flag.group }}</div>
+        {% if flag.contributing_sensors %}
+        <div class="flag-sensors">{{ flag.contributing_sensors | join(', ') }}</div>
+        {% endif %}
+      </div>
+      <div class="flag-right">
+        <span class="badge badge-{{ flag.status }}">
+          <span class="badge-dot"></span>
+          {{ status_label_map[flag.status] }}
+        </span>
+        <div class="flag-conf">Уверенность: {{ (flag.confidence * 100)|round|int }}%</div>
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- ══ РЕШЕНИЯ ══ -->
+  {% if solutions %}
+  <div class="section">
+    <div class="section-title">Варианты реставрации</div>
+
+    {% for sol in solutions %}
+    {% if sol.type == 'low_cost' %}
+    <div class="sol-card sol-card-white">
+      <div class="sol-eyebrow">Solution 1</div>
+      <div class="sol-name">Low cost</div>
+    {% elif sol.type == 'optimal' %}
+    <div class="sol-card sol-card-blush">
+      <div class="sol-eyebrow">Solution 2  ·  AI Рекомендует</div>
+      <div class="sol-name">Optimal</div>
+    {% else %}
+    <div class="sol-card sol-card-maroon">
+      <div class="sol-eyebrow">Solution 3</div>
+      <div class="sol-name">Eco</div>
+    {% endif %}
+
+      <div class="sol-price-row">
+        <div class="sol-price">{{ '%.1f' | format(sol.estimated_cost_amount / 1_000_000) }} млн {{ sol.estimated_cost_currency }}</div>
+        {% if sol.estimated_savings_money > 0 %}
+        <div class="sol-savings">экономия {{ '%.1f' | format(sol.estimated_savings_money / 1_000_000) }} млн {{ sol.estimated_cost_currency }}</div>
+        {% endif %}
+      </div>
+
+      {% if sol.required_changes %}
+      <div class="changes-list">
+        {% for change in sol.required_changes %}
+        <div class="change-item"><div class="change-dot"></div><span>{{ change }}</span></div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if sol.material_line_items %}
+      <table class="mat-table">
+        <thead>
+          <tr>
+            <th>Материал</th>
+            <th>Кол-во</th>
+            <th>Ед.</th>
+            <th style="text-align:right">Стоимость</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in sol.material_line_items %}
+          <tr>
+            <td>{{ item.material_name }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.unit }}</td>
+            <td style="text-align:right;font-weight:700;">{{ '{:,.0f}'.format(item.line_cost) }} {{ sol.estimated_cost_currency }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if sol.estimated_savings_resources_description %}
+      <div style="margin-top:6pt;font-size:9pt;{% if sol.type == 'eco' %}color:#f0d8d8{% else %}color:var(--text-sec){% endif %}">
+        <strong>Ресурсы:</strong> {{ sol.estimated_savings_resources_description }}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ══ FOOTER ══ -->
+  <div class="footer">
+    <span>Wolis — AI-диагностика зданий  ·  wolis.app</span>
+    <span>Сессия {{ session_id[:8] }}  ·  {{ generated_at }}</span>
+  </div>
+
+</div>
+</body>
+</html>

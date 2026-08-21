@@ -1,17 +1,15 @@
 from __future__ import annotations
 from uuid import UUID
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
+
+from src.db.repositories.assessment_repository import AssessmentRepository
 from src.db.repositories.measurement_repository import MeasurementRepository
+from src.db.repositories.solution_repository import SolutionRepository
 from src.db.clients import get_session
 from src.services.measurement_service import MeasurementService
-
-# Фиксированный "demo user" — используется заглушкой get_current_user_id
-# до тех пор, пока TASK 35 не подключит реальную проверку Supabase JWT.
-# Значение стабильно (не меняется между запусками), чтобы история
-# измерений для demo-пользователя была консистентной при ручном
-# тестировании через curl/Postman.
-_STUB_DEMO_USER_ID = UUID("00000000-0000-0000-0000-000000000001")
+from src.api.middleware.auth_middleware import get_current_user
+from src.external.auth_client import AuthenticatedUser
 
 
 # get_session from db/clients.py is already a FastAPI-style generator dependency.
@@ -30,38 +28,42 @@ def get_measurement_repository(
     return MeasurementRepository(db=db)
 
 
+def get_assessment_repository(
+    db: Session = Depends(get_db_session)
+) -> AssessmentRepository:
+    return AssessmentRepository(db=db)
+
+
+def get_solution_repository(
+    db: Session = Depends(get_db_session)
+) -> SolutionRepository:
+    return SolutionRepository(db=db)
+
+
 def get_measurement_service(
-    repository: MeasurementRepository = Depends(get_measurement_repository),
+    measurement_repository: MeasurementRepository = Depends(get_measurement_repository),
+    assessment_repository: AssessmentRepository = Depends(get_assessment_repository),
+    solution_repository: SolutionRepository = Depends(get_solution_repository),
 ) -> MeasurementService:
-    return MeasurementService(measurement_repository=repository)
+    return MeasurementService(
+        measurement_repository=measurement_repository,
+        assessment_repository=assessment_repository,
+        solution_repository=solution_repository,
+    )
 
 
 def get_current_user_id(
-    authorization: str | None = Header(default=None),
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> UUID:
     """
-    Заглушка на время до TASK 35 (Authentication).
-
-    Контракт зафиксирован уже сейчас: зависимость возвращает UUID
-    пользователя. Требует наличие заголовка Authorization (чтобы
-    эндпоинты не были доступны совсем без намёка на авторизацию),
-    но не проверяет сам токен — любой непустой Authorization
-    принимается, и возвращается фиксированный demo user_id.
-
-    Это осознанный временный компромисс ради того, чтобы TASK 12
-    (endpoint) можно было протестировать end-to-end через curl/Postman
-    уже сейчас, не дожидаясь TASK 35.
-
-    TODO(TASK 35): заменить тело функции на верификацию Supabase JWT
-    через external/auth_client.py и извлечение реального user_id
-    из проверенного токена. Сигнатура функции (принимает Header,
-    возвращает UUID) не должна измениться — вызывающий код
-    (routes/*.py) останется нетронутым.
+    TASK 35/36: real JWT verification via auth_middleware → auth_client.
+    Extracts the user_id UUID from the verified Supabase token.
+    Raises 401 automatically if the token is missing or invalid.
     """
-    if not authorization:
+    try:
+        return UUID(current_user.user_id)
+    except (ValueError, AttributeError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing Authorization header.",
-        )
-
-    return _STUB_DEMO_USER_ID
+            detail={"error": "invalid_token", "message": "Token sub claim is not a valid UUID"},
+        )
