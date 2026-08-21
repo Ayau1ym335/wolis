@@ -10,15 +10,13 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 
+from ml_training.dataset.rules import STATUS_ORDER
 from ml_training.sanity_check_scenarios import SCENARIOS
 from ml_training.training.train_model import (
     ALL_FEATURE_COLUMNS,
     TARGET_COLUMNS,
     get_encoded_feature_names,
 )
-
-
-STATUS_ORDER = ["normal", "attention", "critical"]
 
 
 def load_artifacts(artifacts_dir: str):
@@ -50,7 +48,11 @@ def evaluate_on_split(models, encoder, split_df: pd.DataFrame, split_name: str) 
         print(classification_report(y_true, y_pred, labels=STATUS_ORDER, zero_division=0))
 
         cm = confusion_matrix(y_true, y_pred, labels=STATUS_ORDER)
-        cm_df = pd.DataFrame(cm, index=[f"true_{s}" for s in STATUS_ORDER], columns=[f"pred_{s}" for s in STATUS_ORDER])
+        cm_df = pd.DataFrame(
+            cm,
+            index=[f"true_{s}" for s in STATUS_ORDER],
+            columns=[f"pred_{s}" for s in STATUS_ORDER],
+        )
         print("Confusion matrix:")
         print(cm_df)
 

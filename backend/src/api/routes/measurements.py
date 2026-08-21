@@ -6,7 +6,9 @@ from src.services.measurement_service import MeasurementService
 from src.types.api_schemas import MeasurementCreateRequest, MeasurementCreateResponse
  
 router = APIRouter(prefix="/measurements", tags=["measurements"])
-@router.post("",response_model=MeasurementCreateResponse,status_code=status.HTTP_201_CREATED,)
+
+
+@router.post("", response_model=MeasurementCreateResponse, status_code=status.HTTP_201_CREATED)
 async def create_measurement(
     request: MeasurementCreateRequest,
     user_id: UUID = Depends(get_current_user_id),

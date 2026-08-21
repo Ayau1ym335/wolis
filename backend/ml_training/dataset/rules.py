@@ -7,6 +7,11 @@ class Status(str, Enum):
 
 _STATUS_SEVERITY_ORDER = [Status.NORMAL, Status.ATTENTION, Status.CRITICAL]
 
+# Public ordered list of status values (str) — single source of truth for
+# both the dataset generator and the training/evaluation scripts.
+STATUS_ORDER = [s.value for s in _STATUS_SEVERITY_ORDER]
+
+
 def _max_severity(*statuses: Status) -> Status:
     return max(statuses, key=lambda s: _STATUS_SEVERITY_ORDER.index(s))
 

@@ -2,15 +2,33 @@ from __future__ import annotations
 from enum import Enum
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+# Re-exported so the AI layer can import everything from one place.
+from .building_context import BuildingContext  # noqa: F401
+from .sensor_data import SensorData  # noqa: F401
+
 class StatusLevel(str, Enum):
     NORMAL = "normal"
     ATTENTION = "attention"
     CRITICAL = "critical"
 
+# Numeric rank for ordering statuses by severity.
+# Shared between ai/validation.py and services/solution_service.py.
+STATUS_RANK: dict["StatusLevel", int] = {
+    StatusLevel.NORMAL: 0,
+    StatusLevel.ATTENTION: 1,
+    StatusLevel.CRITICAL: 2,
+}
+
+# Alias used by the AI layer (inference.py, validation.py, solution_service.py).
+Status = StatusLevel
+
 class ConfidenceLevel(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
+
+# Alias used by the AI layer.
+Confidence = ConfidenceLevel
 
 class ParameterGroup(str, Enum):
     STRUCTURAL = "structural"
@@ -28,7 +46,10 @@ class AssessmentResult(BaseModel):
     overall_status: StatusLevel
     confidence: ConfidenceLevel
     ml_model_used: bool
-    model_version: str = Field(..., min_length=1)
+    # None when ml_model_used=False (rule-based fallback path).
+    # The invariant "if ml_model_used then model_version is set" is
+    # enforced by validate_schema() in ai/validation.py.
+    model_version: str | None = None
     parameter_flags: list[ParameterFlag] = Field(..., min_length=1)
     key_concerns: list[str] = Field(default_factory=list)
 

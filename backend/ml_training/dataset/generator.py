@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 
 from ml_training.dataset.rules import (
     Status,
+    STATUS_ORDER,
     evaluate_structural,
     evaluate_climate,
     evaluate_lighting,
@@ -140,18 +141,18 @@ def _compute_labels(sensor_readings: dict, context: dict) -> dict:
         "overall_status": overall.value,
     }
 
-_STATUS_ORDER = [Status.NORMAL.value, Status.ATTENTION.value, Status.CRITICAL.value]
+
 LABEL_NOISE_RATE = 0.04 
 
 def _flip_to_neighbor(label: str, rng: np.random.Generator) -> str:
-    idx = _STATUS_ORDER.index(label)
+    idx = STATUS_ORDER.index(label)
     if idx == 0:
         neighbor_idx = 1
-    elif idx == len(_STATUS_ORDER) - 1:
+    elif idx == len(STATUS_ORDER) - 1:
         neighbor_idx = idx - 1
     else:
         neighbor_idx = idx + rng.choice([-1, 1])
-    return _STATUS_ORDER[neighbor_idx]
+    return STATUS_ORDER[neighbor_idx]
 
 
 def _apply_label_noise(labels: dict, rng: np.random.Generator) -> dict:
@@ -194,7 +195,7 @@ def generate_dataset(n_rows: int, seed: int) -> pd.DataFrame:
 def _print_class_balance(df: pd.DataFrame) -> None:
     print("\nClass balance (overall_status):")
     counts = df["overall_status"].value_counts(normalize=True).round(3)
-    for status in _STATUS_ORDER:
+    for status in STATUS_ORDER:
         pct = counts.get(status, 0.0)
         print(f"  {status:10s}: {pct * 100:5.1f}%")
 

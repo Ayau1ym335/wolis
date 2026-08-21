@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 from src.db.repositories.measurement_repository import MeasurementRepository
-from src.db.session import get_session
+from src.db.clients import get_session
 from src.services.measurement_service import MeasurementService
 
 # Фиксированный "demo user" — используется заглушкой get_current_user_id
@@ -14,12 +14,8 @@ from src.services.measurement_service import MeasurementService
 _STUB_DEMO_USER_ID = UUID("00000000-0000-0000-0000-000000000001")
 
 
-def get_db_session():
-    db = get_session()
-    try:
-        yield db
-    finally:
-        db.close()
+# get_session from db/clients.py is already a FastAPI-style generator dependency.
+get_db_session = get_session
 
 
 def get_measurement_repository(

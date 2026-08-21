@@ -1,11 +1,10 @@
 import math
+from src.ai.concerns import CONFIDENCE_THRESHOLD
 from src.ai.fallback.rule_based_assessment import assess_with_rules
 from src.ai.model.inference import ModelBundle, predict
-from src.types.assessment import AssessmentResult, BuildingContext, Confidence, SensorData, Status
+from src.types.assessment import AssessmentResult, BuildingContext, Confidence, SensorData, Status, STATUS_RANK
 from src.utils.logger import log_event
 
-CONFIDENCE_THRESHOLD = 0.5
-_STATUS_SEVERITY = {Status.NORMAL: 0, Status.ATTENTION: 1, Status.CRITICAL: 2}
 CRITICAL_CONFLICT_SEVERITY_GAP = 2
 
 
@@ -45,8 +44,8 @@ def cross_check_with_rules(
 
     rules_result = assess_with_rules(sensor_data, building_context)
 
-    model_severity = _STATUS_SEVERITY[result.overall_status]
-    rules_severity = _STATUS_SEVERITY[rules_result.overall_status]
+    model_severity = STATUS_RANK[result.overall_status]
+    rules_severity = STATUS_RANK[rules_result.overall_status]
     severity_gap = abs(model_severity - rules_severity)
 
     if severity_gap == 0:

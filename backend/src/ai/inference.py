@@ -3,6 +3,13 @@ import os
 from dataclasses import dataclass
 from typing import Any
 import joblib
+from ml_training.dataset.rules import compute_overall_status as _rules_compute_overall_status
+from src.ai.concerns import (
+    CONFIDENCE_THRESHOLD,
+    GROUP_CONTRIBUTING_SENSORS,
+    RISK_SCORE_WEIGHTS,
+    derive_key_concerns,
+)
 from src.ai.model.preprocessing import encode_features, load_encoder
 from src.types.assessment import (
     AssessmentResult,
@@ -13,14 +20,6 @@ from src.types.assessment import (
     Status,
 )
 _DEFAULT_ARTIFACTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "artifacts")
-GROUP_CONTRIBUTING_SENSORS = {
-    "structural": ["tilt_angle_deg", "vibration_magnitude", "shock_detected"],
-    "climate": ["humidity_pct", "temperature_c", "pressure_hpa"],
-    "lighting": ["illuminance_lux"],
-}
-
-RISK_SCORE_WEIGHTS = {"structural": 0.5, "climate": 0.3, "lighting": 0.2}
-CONFIDENCE_THRESHOLD = 0.5
 
 
 @dataclass
@@ -69,43 +68,7 @@ def _compute_overall_risk_score(critical_probs: dict[str, float]) -> float:
     return round(weighted_sum * 100.0, 1)
 
 
-def _compute_overall_status(group_statuses: dict[str, Status]) -> Status:
-    structural = group_statuses["structural"]
-    climate = group_statuses["climate"]
-    lighting = group_statuses["lighting"]
 
-    if structural == Status.CRITICAL:
-        return Status.CRITICAL
-    if climate == Status.CRITICAL:
-        return Status.CRITICAL
-    if structural == Status.ATTENTION or climate == Status.ATTENTION or lighting != Status.NORMAL:
-        return Status.ATTENTION
-    return Status.NORMAL
-
-
-def _derive_key_concerns(group_statuses: dict[str, Status], sensor_data: SensorData) -> list[str]:
-    concerns: list[str] = []
-
-    if group_statuses["structural"] != Status.NORMAL:
-        if sensor_data.tilt_angle_deg >= 2.0:
-            concerns.append("high_tilt")
-        if sensor_data.vibration_magnitude >= 0.15:
-            concerns.append("structural_vibration")
-        if sensor_data.shock_detected:
-            concerns.append("shock_event_detected")
-
-    if group_statuses["climate"] != Status.NORMAL:
-        if sensor_data.humidity_pct >= 60.0:
-            concerns.append("moisture_risk")
-        if not (-15.0 <= sensor_data.temperature_c <= 40.0):
-            concerns.append("extreme_temperature")
-        if not (950.0 <= sensor_data.pressure_hpa <= 1050.0):
-            concerns.append("extreme_pressure")
-
-    if group_statuses["lighting"] != Status.NORMAL:
-        concerns.append("insufficient_natural_light")
-
-    return concerns
 
 
 def predict(
@@ -132,7 +95,15 @@ def predict(
         critical_probs[group] = _critical_probability(model, encoded_X)
 
     overall_risk_score = _compute_overall_risk_score(critical_probs)
-    overall_status = _compute_overall_status(group_statuses)
+    # Delegate to the canonical rules function — same logic used by the
+    # rule-based fallback path, keeping both paths in sync automatically.
+    overall_status = Status(
+        _rules_compute_overall_status(
+            group_statuses["structural"],
+            group_statuses["climate"],
+            group_statuses["lighting"],
+        ).value
+    )
 
     min_confidence = min(group_confidences.values())
     if min_confidence >= 0.75:
@@ -152,7 +123,7 @@ def predict(
         for group in ("structural", "climate", "lighting")
     ]
 
-    key_concerns = _derive_key_concerns(group_statuses, sensor_data)
+    key_concerns = derive_key_concerns(group_statuses, sensor_data, Status.NORMAL)
 
     return AssessmentResult(
         overall_risk_score=overall_risk_score,

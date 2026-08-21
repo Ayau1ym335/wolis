@@ -1,11 +1,6 @@
 from dataclasses import dataclass, field
-from enum import Enum
-from src.types.assessment import AssessmentResult, BuildingContext, Status
-
-class SolutionType(str, Enum):
-    LOW_COST = "low_cost"
-    OPTIMAL = "optimal"
-    ECO = "eco"
+from src.types.assessment import AssessmentResult, BuildingContext, Status, STATUS_RANK
+from src.types.solution import SolutionType
 
 
 @dataclass
@@ -58,7 +53,7 @@ CONCERN_TO_MATERIALS: dict[str, list[MaterialCandidate]] = {
 }
 
 
-_SEVERITY_ORDER = {Status.NORMAL: 0, Status.ATTENTION: 1, Status.CRITICAL: 2}
+
 @dataclass
 class SolutionTypeConfig:
     quantity_multiplier: float
@@ -126,13 +121,13 @@ class SolutionGenerationService:
         group_severity: dict[str, Status],
     ) -> SolutionDraft:
         config = SOLUTION_TYPE_CONFIG[solution_type]
-        min_severity_rank = _SEVERITY_ORDER[config.min_severity]
+        min_severity_rank = STATUS_RANK[config.min_severity]
 
         relevant_concerns = [
             concern
             for concern in assessment.key_concerns
             if concern in CONCERN_TO_GROUP
-            and _SEVERITY_ORDER[group_severity.get(CONCERN_TO_GROUP[concern], Status.NORMAL)]
+            and STATUS_RANK[group_severity.get(CONCERN_TO_GROUP[concern], Status.NORMAL)]
             >= min_severity_rank
         ]
 

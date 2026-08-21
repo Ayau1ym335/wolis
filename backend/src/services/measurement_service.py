@@ -1,19 +1,14 @@
 from __future__ import annotations
-from typing import Protocol
 from uuid import UUID
 from datetime import datetime, timezone
 
+from ..db.repositories.measurement_repository import MeasurementRepository
 from ..types.api_schemas import MeasurementCreateRequest, MeasurementCreateResponse
 from ..types.building_context import BuildingContext
 from ..types.sensor_data import SensorData
 
 STATUS_COMPLETE = "complete"
 STATUS_PARTIAL = "partial"
-
-
-class MeasurementRepository(Protocol):
-    def create(self, data: dict) -> UUID:
-        ...
 
 
 class MeasurementService:

@@ -3,6 +3,8 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from src.db.models.measurement_session import MeasurementSession
+from src.types.building_context import BuildingContext
+from src.types.sensor_data import SensorData
 
 
 class MeasurementRepository:
@@ -38,3 +40,27 @@ class MeasurementRepository:
             .order_by(MeasurementSession.created_at.desc())
         )
         return list(self.db.scalars(stmt).all())
+
+    @staticmethod
+    def to_sensor_data(session: MeasurementSession) -> SensorData:
+        """Convert a MeasurementSession ORM row to the SensorData domain type."""
+        return SensorData(
+            temperature_c=session.temperature_c,
+            humidity_pct=session.humidity_pct,
+            pressure_hpa=session.pressure_hpa,
+            illuminance_lux=session.illuminance_lux,
+            tilt_angle_deg=session.tilt_angle_deg,
+            vibration_magnitude=session.vibration_magnitude,
+            shock_detected=session.shock_detected,
+        )
+
+    @staticmethod
+    def to_building_context(session: MeasurementSession) -> BuildingContext:
+        """Convert a MeasurementSession ORM row to the BuildingContext domain type."""
+        return BuildingContext(
+            building_type=session.building_type,
+            age_years=session.building_age_years,
+            material=session.construction_material,
+            area_m2=session.building_area_m2,
+            region=session.region,
+        )

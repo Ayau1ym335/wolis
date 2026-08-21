@@ -5,6 +5,11 @@ from ml_training.dataset.rules import (
     evaluate_lighting,
     compute_overall_status,
 )
+from src.ai.concerns import (
+    GROUP_CONTRIBUTING_SENSORS,
+    RISK_SCORE_WEIGHTS,
+    derive_key_concerns,
+)
 from src.types.assessment import (
     AssessmentResult,
     BuildingContext,
@@ -15,48 +20,16 @@ from src.types.assessment import (
 )
 
 FALLBACK_CONFIDENCE = Confidence.MEDIUM
-FALLBACK_CONFIDENCE_SCORE = 0.6 
-GROUP_CONTRIBUTING_SENSORS = {
-    "structural": ["tilt_angle_deg", "vibration_magnitude", "shock_detected"],
-    "climate": ["humidity_pct", "temperature_c", "pressure_hpa"],
-    "lighting": ["illuminance_lux"],
-}
+FALLBACK_CONFIDENCE_SCORE = 0.6
 STATUS_BASE_RISK_SCORE = {
     RulesStatus.NORMAL: 15.0,
     RulesStatus.ATTENTION: 50.0,
     RulesStatus.CRITICAL: 80.0,
 }
 
-RISK_SCORE_WEIGHTS = {"structural": 0.5, "climate": 0.3, "lighting": 0.2}
-
 
 def _to_result_status(rules_status: RulesStatus) -> Status:
     return Status(rules_status.value)
-
-
-def _derive_key_concerns(group_statuses: dict[str, RulesStatus], sensor_data: SensorData) -> list[str]:
-    concerns: list[str] = []
-
-    if group_statuses["structural"] != RulesStatus.NORMAL:
-        if sensor_data.tilt_angle_deg >= 2.0:
-            concerns.append("high_tilt")
-        if sensor_data.vibration_magnitude >= 0.15:
-            concerns.append("structural_vibration")
-        if sensor_data.shock_detected:
-            concerns.append("shock_event_detected")
-
-    if group_statuses["climate"] != RulesStatus.NORMAL:
-        if sensor_data.humidity_pct >= 60.0:
-            concerns.append("moisture_risk")
-        if not (-15.0 <= sensor_data.temperature_c <= 40.0):
-            concerns.append("extreme_temperature")
-        if not (950.0 <= sensor_data.pressure_hpa <= 1050.0):
-            concerns.append("extreme_pressure")
-
-    if group_statuses["lighting"] != RulesStatus.NORMAL:
-        concerns.append("insufficient_natural_light")
-
-    return concerns
 
 
 def assess_with_rules(sensor_data: SensorData, building_context: BuildingContext) -> AssessmentResult:
@@ -98,7 +71,7 @@ def assess_with_rules(sensor_data: SensorData, building_context: BuildingContext
         for group, status in group_statuses.items()
     ]
 
-    key_concerns = _derive_key_concerns(group_statuses, sensor_data)
+    key_concerns = derive_key_concerns(group_statuses, sensor_data, RulesStatus.NORMAL)
 
     return AssessmentResult(
         overall_risk_score=overall_risk_score,
