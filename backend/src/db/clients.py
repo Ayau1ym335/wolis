@@ -4,6 +4,8 @@ from sqlalchemy.orm import sessionmaker
 from src.config.settings import get_settings
 
 _database_url = get_settings().database_url
+if _database_url and _database_url.startswith("postgresql://"):
+    _database_url = _database_url.replace("postgresql://", "postgresql+psycopg://", 1)
 _connect_args = {"check_same_thread": False} if _database_url.startswith("sqlite") else {}
 
 engine = create_engine(_database_url, connect_args=_connect_args)
