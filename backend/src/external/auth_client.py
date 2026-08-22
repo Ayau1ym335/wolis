@@ -63,11 +63,12 @@ class AuthClient:
                 self._jwt_secret,
                 algorithms=[self._ALGORITHM],
                 audience=self._AUDIENCE,
+                leeway=60,  # Handle clock skew between Supabase and backend
             )
         except ExpiredSignatureError as exc:
             raise InvalidTokenError("Token has expired") from exc
         except PyJWTInvalidTokenError as exc:
-            raise InvalidTokenError("Token signature or claims are invalid") from exc
+            raise InvalidTokenError(f"Token signature or claims are invalid: {exc}") from exc
 
         user_id = payload.get("sub")
         if not user_id:
