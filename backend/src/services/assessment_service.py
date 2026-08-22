@@ -1,4 +1,4 @@
-from src.ai.model.inference import ModelBundle
+from src.ai.inference import ModelBundle
 from src.ai.validation import get_assessment
 from src.db.repositories.assessment_repository import AssessmentRepository
 from src.db.repositories.measurement_repository import MeasurementRepository
