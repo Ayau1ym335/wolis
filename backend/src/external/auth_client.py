@@ -68,7 +68,11 @@ class AuthClient:
         except ExpiredSignatureError as exc:
             raise InvalidTokenError("Token has expired") from exc
         except PyJWTInvalidTokenError as exc:
-            raise InvalidTokenError(f"Token signature or claims are invalid: {exc}") from exc
+            try:
+                header = jwt.get_unverified_header(token)
+            except Exception:
+                header = "unknown"
+            raise InvalidTokenError(f"Token signature or claims are invalid: {exc}. Header: {header}") from exc
 
         user_id = payload.get("sub")
         if not user_id:
