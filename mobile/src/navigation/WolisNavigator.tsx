@@ -31,12 +31,12 @@ import { ApiError } from "../services/apiClient";
 import type { BuildingContextFormValues, RawSensorPacket, WolisResult } from "../types/wolis";
 import { Colors, Radius, Shadow, Spacing } from "../theme";
 
-const LoginScreen = React.lazy(() => import("../screens/LoginScreen"));
-const DeviceConnectionScreen = React.lazy(() => import("../screens/DeviceConnectionScreen"));
-const MeasurementScreen = React.lazy(() => import("../screens/MeasurementScreen"));
-const BuildingContextFormScreen = React.lazy(() => import("../screens/BuildingContextFormScreen"));
-const ResultsScreen = React.lazy(() => import("../screens/ResultsScreen"));
-const ReportPreviewScreen = React.lazy(() => import("../screens/ReportPreviewScreen"));
+import LoginScreen from "../screens/LoginScreen";
+import DeviceConnectionScreen from "../screens/DeviceConnectionScreen";
+import MeasurementScreen from "../screens/MeasurementScreen";
+import BuildingContextFormScreen from "../screens/BuildingContextFormScreen";
+import ResultsScreen from "../screens/ResultsScreen";
+import ReportPreviewScreen from "../screens/ReportPreviewScreen";
 
 // ─── Flow state ───────────────────────────────────────────────────────────────
 type FlowStep =
@@ -182,7 +182,7 @@ export default function WolisNavigator() {
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
-    <React.Suspense fallback={<SplashScreen />}>
+    <>
       {/* Auth gate */}
       {auth.status === "loading" && <SplashScreen />}
 
@@ -234,6 +234,6 @@ export default function WolisNavigator() {
           )}
         </>
       )}
-    </React.Suspense>
+    </>
   );
 }
