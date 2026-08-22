@@ -1,7 +1,7 @@
 import math
 from src.ai.concerns import CONFIDENCE_THRESHOLD
 from src.ai.fallback.rule_based_assessment import assess_with_rules
-from src.ai.model.inference import ModelBundle, predict
+from src.ai.inference import ModelBundle, predict
 from src.types.assessment import AssessmentResult, BuildingContext, Confidence, SensorData, Status, STATUS_RANK
 from src.utils.logger import log_event
 
