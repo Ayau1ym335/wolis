@@ -39,7 +39,8 @@ class AuthClient:
     """
 
     # Supabase issues HS256-signed JWTs by default for the project JWT secret.
-    _ALGORITHM = "HS256"
+    # Support multiple algorithms in case Supabase project uses a different one
+    _ALGORITHMS = ["HS256", "HS384", "HS512", "RS256"]
     # Supabase tokens use "authenticated" as the audience for logged-in users.
     _AUDIENCE = "authenticated"
 
@@ -61,7 +62,7 @@ class AuthClient:
             payload = jwt.decode(
                 token,
                 self._jwt_secret,
-                algorithms=[self._ALGORITHM],
+                algorithms=self._ALGORITHMS,
                 audience=self._AUDIENCE,
                 leeway=60,  # Handle clock skew between Supabase and backend
             )
