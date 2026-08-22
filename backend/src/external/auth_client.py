@@ -13,7 +13,8 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 import jwt
-from jwt import ExpiredSignatureError, InvalidTokenError as PyJWTInvalidTokenError
+from jwt import PyJWKClient
+from jwt.exceptions import ExpiredSignatureError, PyJWTError as PyJWTInvalidTokenError
 
 from src.config.settings import get_settings
 
@@ -32,36 +33,46 @@ class AuthenticatedUser:
 
 class AuthClient:
     """
-    Verifies Supabase-issued JWTs locally using the project's JWT
-    secret, rather than making a network call to Supabase on every
-    request. This is the standard approach for Supabase Auth and
-    keeps auth checks fast and independent of Supabase uptime.
+    Verifies Supabase JWTs.
+
+    Supabase recently started issuing ES256/RS256-signed JWTs for logged in users
+    for better security. It still uses HS256 for the anon_key.
+    This client supports both by dynamically using the JWKS endpoint for asymmetric
+    algorithms and the symmetric JWT secret for HS256.
     """
 
-    # Supabase issues HS256-signed JWTs by default for the project JWT secret.
-    # Support multiple algorithms in case Supabase project uses a different one
-    _ALGORITHMS = ["HS256", "HS384", "HS512", "RS256"]
+    _ALGORITHMS = ["HS256", "HS384", "HS512", "RS256", "ES256"]
     # Supabase tokens use "authenticated" as the audience for logged-in users.
     _AUDIENCE = "authenticated"
 
-    def __init__(self, jwt_secret: str) -> None:
+    def __init__(self, supabase_url: str, jwt_secret: str) -> None:
         self._jwt_secret = jwt_secret
+        jwks_url = f"{supabase_url.rstrip('/')}/auth/v1/jwks"
+        self._jwks_client = PyJWKClient(jwks_url)
 
     def verify_token(self, token: str) -> AuthenticatedUser:
         """
-        Verify a raw JWT string and return the identity it carries.
-
-        Raises InvalidTokenError for any failure case (expired, bad
-        signature, missing required claims) — callers don't need to
-        distinguish the reason, only that the token isn't usable.
+        Validates the token signature (either symmetric or asymmetric),
+        audience, and expiration. Returns the verified user identity.
         """
         if not token:
             raise InvalidTokenError("Token is empty")
 
         try:
+            # Determine which key to use based on the token header
+            unverified_header = jwt.get_unverified_header(token)
+            alg = unverified_header.get("alg", "HS256")
+            
+            if alg.startswith("HS"):
+                # Symmetric algorithms use the raw project secret string
+                signing_key = self._jwt_secret
+            else:
+                # Asymmetric algorithms (ES256, RS256) require fetching the public key via JWKS
+                signing_key = self._jwks_client.get_signing_key_from_jwt(token).key
+
             payload = jwt.decode(
                 token,
-                self._jwt_secret,
+                signing_key,
                 algorithms=self._ALGORITHMS,
                 audience=self._AUDIENCE,
                 leeway=60,  # Handle clock skew between Supabase and backend
@@ -74,6 +85,9 @@ class AuthClient:
             except Exception:
                 header = "unknown"
             raise InvalidTokenError(f"Token signature or claims are invalid: {exc}. Header: {header}") from exc
+        except Exception as exc:
+            # Catch other potential errors (like PyJWKClientError if JWKS fetch fails)
+            raise InvalidTokenError(f"Failed to verify token key: {exc}") from exc
 
         user_id = payload.get("sub")
         if not user_id:
@@ -85,9 +99,11 @@ class AuthClient:
 @lru_cache(maxsize=1)
 def get_auth_client() -> AuthClient:
     """
-    Cached factory — AuthClient is stateless and immutable, so a single
-    instance shared across all requests is safe and avoids re-reading
-    settings on every authentication check.
+    Cached factory — AuthClient is stateless except for JWKS cache,
+    so a single instance per process is optimal.
     """
     settings = get_settings()
-    return AuthClient(jwt_secret=settings.supabase_jwt_secret)
+    return AuthClient(
+        supabase_url=settings.supabase_url,
+        jwt_secret=settings.supabase_jwt_secret
+    )
