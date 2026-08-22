@@ -24,10 +24,14 @@ def whoami(current_user: AuthenticatedUser = Depends(get_current_user)) -> dict:
 def health() -> dict:
     """Public endpoint — shows config state without exposing secret values."""
     jwt_secret = os.environ.get("SUPABASE_JWT_SECRET", "")
+    anon_key = os.environ.get("SUPABASE_ANON_KEY", "")
+    service_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
     return {
         "status": "ok",
         "jwt_secret_set": bool(jwt_secret),
         "jwt_secret_length": len(jwt_secret),
+        "anon_key_set": bool(anon_key),
+        "service_key_set": bool(service_key),
         "supabase_url_set": bool(os.environ.get("SUPABASE_URL")),
         "database_url_set": bool(os.environ.get("DATABASE_URL")),
     }

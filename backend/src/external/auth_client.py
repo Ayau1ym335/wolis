@@ -47,9 +47,9 @@ class AuthClient:
 
     def __init__(self, supabase_url: str, jwt_secret: str, anon_key: str = "") -> None:
         self._jwt_secret = jwt_secret
-        jwks_url = f"{supabase_url.rstrip('/')}/auth/v1/jwks"
-        # Supabase JWKS endpoint requires an apikey header — pass the anon key.
-        # Fall back gracefully if anon_key is not configured.
+        # Correct Supabase JWKS endpoint — requires apikey header
+        jwks_url = f"{supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+        # Supabase requires the anon key as apikey header to access JWKS endpoint.
         jwks_headers = {"apikey": anon_key} if anon_key else {}
         self._jwks_client = PyJWKClient(jwks_url, headers=jwks_headers)
 
