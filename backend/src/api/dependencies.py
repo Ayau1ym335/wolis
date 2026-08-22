@@ -19,38 +19,6 @@ from src.ai.inference import ModelBundle, load_models
 # get_session from db/clients.py is already a FastAPI-style generator dependency.
 get_db_session = get_session
 
-_model_bundle = None
-
-def get_model_bundle() -> ModelBundle:
-    global _model_bundle
-    if _model_bundle is None:
-        _model_bundle = load_models()
-    return _model_bundle
-
-def get_materials_repository(
-    db: Session = Depends(get_db_session)
-) -> MaterialsRepository:
-    return MaterialsRepository(db=db)
-
-def get_assessment_service(
-    measurement_repository: MeasurementRepository = Depends(get_measurement_repository),
-    assessment_repository: AssessmentRepository = Depends(get_assessment_repository),
-    model_bundle: ModelBundle = Depends(get_model_bundle),
-) -> AssessmentService:
-    return AssessmentService(
-        measurement_repository=measurement_repository,
-        assessment_repository=assessment_repository,
-        model_bundle=model_bundle,
-    )
-
-def get_solution_generation_service() -> SolutionGenerationService:
-    return SolutionGenerationService()
-
-def get_cost_calculation_service(
-    materials_repository: MaterialsRepository = Depends(get_materials_repository)
-) -> CostCalculationService:
-    return CostCalculationService(materials_repository=materials_repository)
-
 
 
 def get_measurement_repository(
@@ -103,4 +71,37 @@ def get_current_user_id(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"error": "invalid_token", "message": "Token sub claim is not a valid UUID"},
-        )
+        )
+
+_model_bundle = None
+
+def get_model_bundle() -> ModelBundle:
+    global _model_bundle
+    if _model_bundle is None:
+        _model_bundle = load_models()
+    return _model_bundle
+
+def get_materials_repository(
+    db: Session = Depends(get_db_session)
+) -> MaterialsRepository:
+    return MaterialsRepository(db=db)
+
+def get_assessment_service(
+    measurement_repository: MeasurementRepository = Depends(get_measurement_repository),
+    assessment_repository: AssessmentRepository = Depends(get_assessment_repository),
+    model_bundle: ModelBundle = Depends(get_model_bundle),
+) -> AssessmentService:
+    return AssessmentService(
+        measurement_repository=measurement_repository,
+        assessment_repository=assessment_repository,
+        model_bundle=model_bundle,
+    )
+
+def get_solution_generation_service() -> SolutionGenerationService:
+    return SolutionGenerationService()
+
+def get_cost_calculation_service(
+    materials_repository: MaterialsRepository = Depends(get_materials_repository)
+) -> CostCalculationService:
+    return CostCalculationService(materials_repository=materials_repository)
+
