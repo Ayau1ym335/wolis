@@ -9,9 +9,29 @@ import type {
 export async function createMeasurement(
   payload: CreateMeasurementPayload
 ): Promise<CreateMeasurementResponse> {
+  // Backend expects a nested structure: { sensor_data: {...}, building_context: {...} }
+  // But the mobile app builds a flat payload, so we transform it here.
+  const body = {
+    sensor_data: {
+      temperature_c: payload.temperature_c,
+      humidity_pct: payload.humidity_pct,
+      pressure_hpa: payload.pressure_hpa,
+      illuminance_lux: payload.illuminance_lux,
+      tilt_angle_deg: payload.tilt_angle_deg,
+      vibration_magnitude: payload.vibration_magnitude,
+      shock_detected: payload.shock_detected,
+    },
+    building_context: {
+      building_type: payload.building_type,
+      age_years: payload.age_years,
+      material: payload.material,
+      area_m2: payload.area_m2,
+      region: payload.region,
+    },
+  };
   return apiRequest<CreateMeasurementResponse>("/measurements", {
     method: "POST",
-    body: payload,
+    body,
   });
 }
 
