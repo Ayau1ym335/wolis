@@ -10,7 +10,7 @@ from src.ai.concerns import (
     RISK_SCORE_WEIGHTS,
     derive_key_concerns,
 )
-from src.ai.model.preprocessing import encode_features, load_encoder
+from src.ai.preprocessing import encode_features, load_encoder
 from src.types.assessment import (
     AssessmentResult,
     BuildingContext,
@@ -19,7 +19,7 @@ from src.types.assessment import (
     SensorData,
     Status,
 )
-_DEFAULT_ARTIFACTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "artifacts")
+_DEFAULT_ARTIFACTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model")
 
 
 @dataclass
