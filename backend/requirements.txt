@@ -9,10 +9,7 @@ pandas
 scikit-learn
 joblib
 pyjwt
-# TASK 36 — JWT verification
 pyjwt[crypto]
-# TASK 38 — PDF generation
 weasyprint
 jinja2
-# TASK 38 — Supabase Storage HTTP client
 httpx
