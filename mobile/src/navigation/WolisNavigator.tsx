@@ -155,20 +155,43 @@ export default function WolisNavigator() {
     async (context: BuildingContextFormValues, reading: RawSensorPacket) => {
       const fromStep: FlowStep = { step: "form", reading };
       setFlow({ step: "submitting", reading, context });
-      try {
-        const result = await submitMeasurement({
+
+      const doSubmit = () =>
+        submitMeasurement({
           ...reading,
           ...context,
           user_id: auth.session?.user_id ?? "anon-user",
         });
+
+      try {
+        const result = await doSubmit();
         setFlow({ step: "results", result });
       } catch (err) {
-        // 401 → sign out and go to login
+        // 401 → токен истёк. Пробуем обновить его и повторить запрос один раз.
         if (err instanceof ApiError && err.status === 401) {
-          await auth.signOut();
-          return;
+          const refreshed = await auth.refreshSession();
+          if (!refreshed) {
+            // refreshSession сам вызвал signOut → навигатор покажет LoginScreen
+            return;
+          }
+          // Повторяем запрос с новым токеном
+          try {
+            const result = await doSubmit();
+            setFlow({ step: "results", result });
+            return;
+          } catch (retryErr) {
+            const message =
+              retryErr instanceof ApiError && retryErr.status === 401
+                ? "Не удалось авторизоваться. Пожалуйста, выйдите и войдите заново."
+                : retryErr instanceof Error
+                ? retryErr.message
+                : "Неизвестная ошибка при отправке данных.";
+            setFlow({ step: "error", message, fromStep });
+            return;
+          }
         }
-        const message = err instanceof Error ? err.message : "Неизвестная ошибка при отправке данных.";
+        const message =
+          err instanceof Error ? err.message : "Неизвестная ошибка при отправке данных.";
         setFlow({ step: "error", message, fromStep });
       }
     },

@@ -212,6 +212,27 @@ class AuthStore {
     this.setState({ status: "unauthenticated", session: null, error: null });
   }
 
+  /**
+   * Proactively refreshes the access token using the stored refresh_token.
+   * Call this before making an important API request if the token might be expired.
+   * Returns true if refresh succeeded, false otherwise (and signs the user out).
+   */
+  async refreshSession(): Promise<boolean> {
+    const session = this.state.session;
+    if (!session?.refresh_token) {
+      await this.signOut();
+      return false;
+    }
+    try {
+      const refreshed = await supabaseRefresh(session.refresh_token);
+      await this._persist(refreshed);
+      return true;
+    } catch {
+      await this.signOut();
+      return false;
+    }
+  }
+
   private async _persist(session: WolisSession): Promise<void> {
     await storage.setItem(STORAGE_KEY, JSON.stringify(session));
     await this._attach(session);
@@ -236,6 +257,8 @@ export function initializeAuth(): Promise<void> {
 export interface UseAuthResult extends AuthState {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Refresh the access token. Returns true on success, false if session ended. */
+  refreshSession: () => Promise<boolean>;
 }
 
 export function useAuth(): UseAuthResult {
@@ -251,5 +274,6 @@ export function useAuth(): UseAuthResult {
     ...state,
     signIn: (email, password) => authStore.signIn(email, password),
     signOut: () => authStore.signOut(),
+    refreshSession: () => authStore.refreshSession(),
   };
 }
