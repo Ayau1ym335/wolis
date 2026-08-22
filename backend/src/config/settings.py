@@ -23,6 +23,7 @@ class Settings:
         self.supabase_url: str = self._require("SUPABASE_URL")
         self.supabase_jwt_secret: str = self._require("SUPABASE_JWT_SECRET")
         self.supabase_service_key: str = self._require("SUPABASE_SERVICE_KEY")
+        self.supabase_anon_key: str = os.environ.get("SUPABASE_ANON_KEY", "")
         self.database_url: str = self._require("DATABASE_URL")
         self.supabase_storage_bucket: str = os.environ.get(
             "SUPABASE_STORAGE_BUCKET", "wolis-reports"

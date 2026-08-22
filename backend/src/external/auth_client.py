@@ -45,10 +45,13 @@ class AuthClient:
     # Supabase tokens use "authenticated" as the audience for logged-in users.
     _AUDIENCE = "authenticated"
 
-    def __init__(self, supabase_url: str, jwt_secret: str) -> None:
+    def __init__(self, supabase_url: str, jwt_secret: str, anon_key: str = "") -> None:
         self._jwt_secret = jwt_secret
         jwks_url = f"{supabase_url.rstrip('/')}/auth/v1/jwks"
-        self._jwks_client = PyJWKClient(jwks_url)
+        # Supabase JWKS endpoint requires an apikey header — pass the anon key.
+        # Fall back gracefully if anon_key is not configured.
+        jwks_headers = {"apikey": anon_key} if anon_key else {}
+        self._jwks_client = PyJWKClient(jwks_url, headers=jwks_headers)
 
     def verify_token(self, token: str) -> AuthenticatedUser:
         """
@@ -105,5 +108,6 @@ def get_auth_client() -> AuthClient:
     settings = get_settings()
     return AuthClient(
         supabase_url=settings.supabase_url,
-        jwt_secret=settings.supabase_jwt_secret
+        jwt_secret=settings.supabase_jwt_secret,
+        anon_key=settings.supabase_anon_key or settings.supabase_service_key,
     )
