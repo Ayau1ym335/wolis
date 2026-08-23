@@ -1,4 +1,4 @@
-import { apiRequest } from "./apiClient";
+import { apiRequest, AI_TIMEOUT_MS } from "./apiClient";
 import type {
   CreateMeasurementPayload,
   CreateMeasurementResponse,
@@ -38,6 +38,7 @@ export async function createMeasurement(
 export async function assessMeasurement(sessionId: string): Promise<WolisResult> {
   return apiRequest<WolisResult>(`/measurements/${sessionId}/assess`, {
     method: "POST",
+    timeoutMs: AI_TIMEOUT_MS,
   });
 }
 

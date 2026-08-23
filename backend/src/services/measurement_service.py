@@ -130,14 +130,24 @@ class MeasurementService:
             assessment_row = self._assessment_repository.get_by_session_id(session_id)
             if assessment_row:
                 from ..types.assessment import AssessmentResult
+                import json
+                
+                parameter_flags = assessment_row.parameter_flags
+                if isinstance(parameter_flags, str):
+                    parameter_flags = json.loads(parameter_flags)
+                    
+                key_concerns = assessment_row.key_concerns
+                if isinstance(key_concerns, str):
+                    key_concerns = json.loads(key_concerns)
+
                 assessment_domain = AssessmentResult.model_validate({
                     "overall_risk_score": assessment_row.overall_risk_score,
                     "overall_status": assessment_row.overall_status,
                     "confidence": assessment_row.confidence,
                     "ml_model_used": assessment_row.ml_model_used,
                     "model_version": assessment_row.model_version,
-                    "parameter_flags": assessment_row.parameter_flags,
-                    "key_concerns": assessment_row.key_concerns,
+                    "parameter_flags": parameter_flags,
+                    "key_concerns": key_concerns,
                 })
                 measurement.overall_status = assessment_row.overall_status
                 measurement.overall_risk_score = assessment_row.overall_risk_score

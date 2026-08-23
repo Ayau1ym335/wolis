@@ -51,7 +51,18 @@ interface ApiRequestOptions {
   body?: object;
   /** Override token for this request only (e.g. for auth endpoints). */
   token?: string | null;
+  /**
+   * Request timeout in milliseconds.
+   * Default: 30 000 ms (30 s) for regular requests.
+   * Use AI_TIMEOUT_MS for AI/assess endpoints that may hit a cold-start on Render free tier.
+   */
+  timeoutMs?: number;
 }
+
+/** 90-second timeout for AI inference endpoints (Render free-tier cold-start can take 30–60 s). */
+export const AI_TIMEOUT_MS = 90_000;
+
+const DEFAULT_TIMEOUT_MS = 30_000;
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions): Promise<T> {
   const token = options.token !== undefined ? options.token : _authToken;
@@ -64,15 +75,25 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions): P
     headers["Authorization"] = `Bearer ${token}`;
   }
 
+  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   let response: Response;
   try {
     response = await fetch(`${env.API_BASE_URL}${path}`, {
       method: options.method,
       headers,
       body: options.body ? JSON.stringify(options.body) : undefined,
+      signal: controller.signal,
     });
   } catch (networkError) {
+    if ((networkError as Error)?.name === "AbortError") {
+      throw new ApiError(0, "timeout", { error: "timeout" });
+    }
     throw new ApiError(0, "network_error", { error: "network_error" });
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   if (response.status === 401) {

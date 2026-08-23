@@ -1,4 +1,5 @@
 from __future__ import annotations
+import asyncio
 import uuid
 from fastapi import APIRouter, Depends, status
 from src.api.dependencies import get_current_user_id, get_measurement_service
@@ -38,23 +39,28 @@ async def assess_measurement(
     measurement_repository: MeasurementRepository = Depends(get_measurement_repository),
     measurement_service: MeasurementService = Depends(get_measurement_service),
 ) -> MeasurementResultResponse:
-    # 1. Evaluate
-    assessment_result = assessment_service.assess_measurement(session_id)
+    # 1. Evaluate (sync ML inference — run in threadpool to avoid blocking the event loop)
+    assessment_result = await asyncio.to_thread(
+        assessment_service.assess_measurement, session_id
+    )
     assessment = assessment_repository.get_by_session_id(session_id)
     
     # 2. Get building context
     measurement = measurement_repository.get_by_id(session_id)
     building_context = measurement_repository.to_building_context(measurement)
 
-    # 3. Generate solutions
-    solution_drafts = solution_generation_service.generate_solutions(assessment_result, building_context)
+    # 3. Generate solutions (sync — run in threadpool)
+    solution_drafts = await asyncio.to_thread(
+        solution_generation_service.generate_solutions, assessment_result, building_context
+    )
     
-    # 4. Calculate costs
-    priced_solutions = cost_calculation_service.calculate_costs(
-        solution_drafts=solution_drafts,
-        region=building_context.region,
-        assessment_key_concerns=assessment_result.key_concerns,
-        building_area_m2=building_context.area_m2,
+    # 4. Calculate costs (sync — run in threadpool)
+    priced_solutions = await asyncio.to_thread(
+        cost_calculation_service.calculate_costs,
+        solution_drafts,
+        building_context.region,
+        assessment_result.key_concerns,
+        building_context.area_m2,
     )
 
     # 5. Save solutions
