@@ -39,7 +39,7 @@ async def assess_measurement(
     measurement_service: MeasurementService = Depends(get_measurement_service),
 ) -> MeasurementResultResponse:
     # 1. Evaluate
-    assessment_result = assessment_service.assess_measurement(str(session_id))
+    assessment_result = assessment_service.assess_measurement(session_id)
     assessment = assessment_repository.get_by_session_id(session_id)
     
     # 2. Get building context
@@ -69,12 +69,13 @@ async def assess_measurement(
             "savings_resources_description": sol.estimated_savings.resources_description,
         })
         for mat in sol.material_line_items:
-            solution_repository.add_material(
-                solution_id=sol_id,
-                material_id=mat.material_id,
-                quantity=mat.quantity,
-                price=mat.unit_price_at_calculation,
-            )
+            if mat.material_id is not None:
+                solution_repository.add_material(
+                    solution_id=sol_id,
+                    material_id=mat.material_id,
+                    quantity=mat.quantity,
+                    price=mat.unit_price_at_calculation,
+                )
             
     return await measurement_service.get_measurement_result(session_id=session_id, user_id=user_id)
 

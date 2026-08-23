@@ -17,7 +17,7 @@ class AssessmentRepository:
             "confidence": result.confidence.value,
             "ml_model_used": result.ml_model_used,
             "model_version": result.model_version,
-            "parameter_flags": [flag.model_dump() for flag in result.parameter_flags],
+            "parameter_flags": [flag.model_dump(mode="json") for flag in result.parameter_flags],
             "key_concerns": result.key_concerns,
         }
         return self.create(data)

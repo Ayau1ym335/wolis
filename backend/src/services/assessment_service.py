@@ -1,3 +1,4 @@
+import uuid
 from src.ai.inference import ModelBundle
 from src.ai.validation import get_assessment
 from src.db.repositories.assessment_repository import AssessmentRepository
@@ -22,7 +23,7 @@ class AssessmentService:
         self._assessment_repository = assessment_repository
         self._model_bundle = model_bundle
 
-    def assess_measurement(self, session_id: str) -> AssessmentResult:
+    def assess_measurement(self, session_id: uuid.UUID) -> AssessmentResult:
         measurement = self._measurement_repository.get_by_id(session_id)
         if measurement is None:
             raise MeasurementNotFoundError(session_id)

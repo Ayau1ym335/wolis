@@ -182,7 +182,7 @@ export default function WolisNavigator() {
           } catch (retryErr) {
             const message =
               retryErr instanceof ApiError && retryErr.status === 401
-                ? "Не удалось авторизоваться. Пожалуйста, выйдите и войдите заново."
+                ? `Ошибка авторизации: ${retryErr.body?.message || "Токен недействителен"}`
                 : retryErr instanceof Error
                 ? retryErr.message
                 : "Неизвестная ошибка при отправке данных.";

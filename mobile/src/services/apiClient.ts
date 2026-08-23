@@ -76,9 +76,18 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions): P
   }
 
   if (response.status === 401) {
+    let errorBody: any = { error: "unauthorized" };
+    try {
+      errorBody = await response.json();
+      console.error("[apiClient] 401 Unauthorized details:", JSON.stringify(errorBody, null, 2));
+    } catch {
+      console.error("[apiClient] 401 Unauthorized (no JSON body)");
+    }
     // Surface auth errors as a dedicated code so callers (e.g. WolisNavigator)
     // can redirect to the login screen rather than showing a generic error.
-    throw new ApiError(401, "unauthorized", { error: "unauthorized" });
+    // Ensure we pass the actual backend message if it exists (FastAPI puts it in 'detail.message' or similar)
+    const backendMessage = errorBody?.detail?.message || errorBody?.message || "unauthorized";
+    throw new ApiError(401, "unauthorized", { error: "unauthorized", message: backendMessage });
   }
 
   if (!response.ok) {
