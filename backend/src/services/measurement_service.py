@@ -1,4 +1,5 @@
 from __future__ import annotations
+import json
 import uuid
 from datetime import datetime, timezone
 from fastapi import HTTPException, status as http_status
@@ -166,10 +167,16 @@ class MeasurementService:
                             }
                             for sm in sw.materials
                         ]
+                        # required_changes may come back as a JSON string from
+                        # PostgreSQL (same behaviour as parameter_flags / key_concerns
+                        # in assessment_repository). Deserialise defensively.
+                        required_changes = sw.solution.required_changes or []
+                        if isinstance(required_changes, str):
+                            required_changes = json.loads(required_changes)
                         solutions.append(
                             SolutionResultItem(
                                 type=sw.solution.type,
-                                required_changes=sw.solution.required_changes or [],
+                                required_changes=required_changes,
                                 estimated_cost_amount=float(sw.solution.cost_amount),
                                 estimated_cost_currency=sw.solution.cost_currency,
                                 estimated_savings_money=float(sw.solution.savings_money),

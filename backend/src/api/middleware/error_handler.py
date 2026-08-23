@@ -1,4 +1,5 @@
-from __future__ import annotations 
+from __future__ import annotations
+import traceback
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -58,11 +59,11 @@ def register_error_handlers(app: FastAPI) -> None:
  
     @app.exception_handler(Exception)
     async def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
+        traceback.print_exc()  # prints to stderr → visible in Render Logs
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=ErrorResponse(
                 error_code="INTERNAL_ERROR",
                 message="Something went wrong. Please try again.",
             ).model_dump(),
-        )
- 
+        )
