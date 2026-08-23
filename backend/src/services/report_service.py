@@ -231,10 +231,12 @@ class ReportService:
         existing = db.scalar(
             select(Report).where(Report.session_id == session_id)
         )
+        now_utc = datetime.now(timezone.utc)
         if existing:
             existing.storage_url = storage_url
+            existing.generated_at = now_utc
             db.commit()
         else:
-            report = Report(session_id=session_id, storage_url=storage_url)
+            report = Report(session_id=session_id, storage_url=storage_url, generated_at=now_utc)
             db.add(report)
             db.commit()
