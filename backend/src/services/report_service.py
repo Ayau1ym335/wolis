@@ -22,6 +22,8 @@ Design decisions:
 
 from __future__ import annotations
 
+import asyncio
+import json
 import uuid
 from datetime import datetime, timezone
 
@@ -116,14 +118,23 @@ class ReportService:
         overall_status = "normal"
 
         if assessment_row:
+            # parameter_flags and key_concerns may come back as JSON strings
+            # from PostgreSQL — deserialise defensively (same as assessment_repository).
+            parameter_flags = assessment_row.parameter_flags
+            if isinstance(parameter_flags, str):
+                parameter_flags = json.loads(parameter_flags)
+            key_concerns = assessment_row.key_concerns
+            if isinstance(key_concerns, str):
+                key_concerns = json.loads(key_concerns)
+
             assessment_domain = AssessmentResult.model_validate({
                 "overall_risk_score": assessment_row.overall_risk_score,
                 "overall_status": assessment_row.overall_status,
                 "confidence": assessment_row.confidence,
                 "ml_model_used": assessment_row.ml_model_used,
                 "model_version": assessment_row.model_version,
-                "parameter_flags": assessment_row.parameter_flags,
-                "key_concerns": assessment_row.key_concerns,
+                "parameter_flags": parameter_flags,
+                "key_concerns": key_concerns,
             })
             overall_status = assessment_row.overall_status
 
@@ -142,10 +153,15 @@ class ReportService:
                     }
                     for sm in sw.materials
                 ]
+                # required_changes may come back as a JSON string from PostgreSQL.
+                # Deserialise defensively (same fix as in measurement_service).
+                required_changes = sw.solution.required_changes or []
+                if isinstance(required_changes, str):
+                    required_changes = json.loads(required_changes)
                 solutions.append(
                     SolutionResultItem(
                         type=sw.solution.type,
-                        required_changes=sw.solution.required_changes or [],
+                        required_changes=required_changes,
                         estimated_cost_amount=float(sw.solution.cost_amount),
                         estimated_cost_currency=sw.solution.cost_currency,
                         estimated_savings_money=float(sw.solution.savings_money),
@@ -180,8 +196,10 @@ class ReportService:
         }
 
         # ── 5. Generate PDF ──────────────────────────────────────────────
+        # WeasyPrint is synchronous and CPU-bound — run in threadpool to
+        # avoid blocking the FastAPI event loop.
         try:
-            pdf_bytes = generate_pdf(context)
+            pdf_bytes = await asyncio.to_thread(generate_pdf, context)
         except (ImportError, RuntimeError) as exc:
             raise HTTPException(
                 status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,

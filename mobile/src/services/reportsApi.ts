@@ -7,7 +7,7 @@
  * returns a public download URL.  This module wraps that one call.
  */
 
-import { apiRequest } from "./apiClient";
+import { apiRequest, AI_TIMEOUT_MS } from "./apiClient";
 
 export interface GenerateReportResponse {
   download_url: string;
@@ -23,6 +23,6 @@ export interface GenerateReportResponse {
 export async function generateReport(sessionId: string): Promise<GenerateReportResponse> {
   return apiRequest<GenerateReportResponse>(
     `/measurements/${sessionId}/report`,
-    { method: "POST" }
+    { method: "POST", timeoutMs: AI_TIMEOUT_MS }
   );
 }
