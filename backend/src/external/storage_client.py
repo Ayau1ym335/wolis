@@ -3,6 +3,7 @@ import httpx
 from src.config.settings import get_settings
 
 class StorageError(Exception):
+    #idk
     pass
 
 class StorageClient:
