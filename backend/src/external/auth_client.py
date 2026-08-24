@@ -6,6 +6,7 @@ from jwt.exceptions import ExpiredSignatureError, PyJWTError as PyJWTInvalidToke
 from src.config.settings import get_settings
 
 class InvalidTokenError(Exception):
+    pass
 
 @dataclass(frozen=True)
 class AuthenticatedUser:
