@@ -3,6 +3,7 @@ import httpx
 from src.config.settings import get_settings
 
 class StorageError(Exception):
+    pass
 
 class StorageClient:
     def __init__(self, supabase_url: str, service_key: str, bucket: str) -> None:
