@@ -10,8 +10,6 @@ from .sensor_data import SensorData
 from .solution import Solution
 
 SOLUTIONS_COUNT = 3
-
-
 class MeasurementCreateRequest(BaseModel):
     sensor_data: SensorData
     building_context: BuildingContext
@@ -45,10 +43,8 @@ class ErrorResponse(BaseModel):
     details: dict | None = None
 
 
-# ─── History / result endpoints ──────────────────────────────────────────────
 
 class MeasurementHistoryItem(BaseModel):
-    """Compact row shown in HistoryScreen — no assessment or solutions."""
     session_id: UUID
     building_type: str
     building_age_years: int
@@ -57,12 +53,11 @@ class MeasurementHistoryItem(BaseModel):
     region: str
     status: str
     created_at: datetime
-    overall_status: str | None = None   # denormalised from assessment if available
+    overall_status: str | None = None  
     overall_risk_score: float | None = None
 
 
 class SolutionResultItem(BaseModel):
-    """Solution row in the full result response."""
     type: str
     required_changes: list[str]
     estimated_cost_amount: float
@@ -73,7 +68,6 @@ class SolutionResultItem(BaseModel):
 
 
 class MeasurementResultResponse(BaseModel):
-    """Full result returned by GET /measurements/{id}/result — mirrors WolisResult on mobile."""
     measurement: MeasurementHistoryItem
     assessment: AssessmentResult | None = None
-    solutions: list[SolutionResultItem] = []
+    solutions: list[SolutionResultItem] = []

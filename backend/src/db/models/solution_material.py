@@ -4,7 +4,6 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
  
- 
 class SolutionMaterial(Base):
     __tablename__ = "solution_materials"
     __table_args__ = (

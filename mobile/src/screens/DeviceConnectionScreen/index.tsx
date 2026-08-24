@@ -1,21 +1,3 @@
-/**
- * screens/DeviceConnectionScreen/index.tsx
- *
- * TASK 30 — Экран подключения к Sensor Box.
- *
- * States handled:
- *   disconnected (no device)  →  "Scan" button
- *   scanning                  →  animated scanner ring
- *   disconnected (device found) →  device card + "Connect" button
- *   connecting                →  pulse animation
- *   connected                 →  success state + "Start Measurement" CTA
- *   error                     →  error pill + retry
- *
- * Design language: Wolis brand tokens — maroon #731919, blush #bfa4b8,
- * ink #141616, offwhite #f5f5f7.  Fraunces serif headings, IBM Plex Mono
- * for status labels and values.
- */
-
 import React, { useEffect, useRef } from "react";
 import {
   Animated,
@@ -32,10 +14,8 @@ import { Colors, Radius, Shadow, Spacing } from "../../theme";
 import { useBleDevice } from "../../features/ble_connection/useBleDevice";
 import { DEVICE_NAME_PREFIX } from "../../features/ble_connection/bleadapter";
 
-// ─── Sensor chip labels ──────────────────────────────────────────────────────
 const SENSOR_CHIPS = ["BME280", "BH1750", "MPU6050", "SW-420"] as const;
 
-// ─── Status metadata ──────────────────────────────────────────────────────────
 const STATUS_META: Record<string, { label: string; color: string }> = {
   disconnected: { label: "Не подключён", color: Colors.textSecondary },
   scanning: { label: "Сканирование…", color: Colors.warning },
@@ -45,7 +25,6 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
   error: { label: "Ошибка", color: Colors.error },
 } as const;
 
-// ─── Animated ring ────────────────────────────────────────────────────────────
 function ScanRing({ active }: { active: boolean }) {
   const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(0.8)).current;
@@ -74,7 +53,6 @@ function ScanRing({ active }: { active: boolean }) {
 
   return (
     <View style={styles.ringContainer}>
-      {/* Pulsing ring */}
       <Animated.View
         style={[
           styles.ringOuter,
@@ -84,7 +62,6 @@ function ScanRing({ active }: { active: boolean }) {
           },
         ]}
       />
-      {/* Static inner circle */}
       <View style={styles.ringInner}>
         <Text style={styles.ringIcon}>{active ? "⟳" : "◉"}</Text>
       </View>
@@ -92,7 +69,6 @@ function ScanRing({ active }: { active: boolean }) {
   );
 }
 
-// ─── Wolis logo mark ──────────────────────────────────────────────────────────
 function WolisLogo() {
   return (
     <View style={styles.logoRow} accessibilityLabel="Wolis logo">
@@ -105,9 +81,7 @@ function WolisLogo() {
   );
 }
 
-// ─── Main screen ─────────────────────────────────────────────────────────────
 export interface DeviceConnectionScreenProps {
-  /** Called when device is confirmed connected — navigate to MeasurementScreen */
   onConnected?: () => void;
 }
 
@@ -122,7 +96,6 @@ export default function DeviceConnectionScreen({ onConnected }: DeviceConnection
   const isBusy = isScanning || isConnecting || isReconnecting;
   const hasDevice = device !== null;
 
-  // Dot blink when busy
   const dotOpacity = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     if (!isBusy) {
@@ -146,22 +119,18 @@ export default function DeviceConnectionScreen({ onConnected }: DeviceConnection
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ── Logo lock-up ── */}
         <View style={styles.logoLockup}>
           <WolisLogo />
           <Text style={styles.tagline}>WHERE BUILDINGS MEET THE FUTURE</Text>
         </View>
 
-        {/* ── Scan animation ── */}
         <ScanRing active={isBusy || isConnected} />
 
-        {/* ── Status pill ── */}
         <View style={[styles.statusPill, isConnected && styles.statusPillConnected]}>
           <Animated.View style={[styles.statusDot, { backgroundColor: statusMeta.color, opacity: dotOpacity }]} />
           <Text style={[styles.statusLabel, { color: statusMeta.color }]}>{statusMeta.label}</Text>
         </View>
 
-        {/* ── Device card (once found) ── */}
         {hasDevice && (
           <View style={[styles.card, styles.deviceCard]} accessibilityLabel="Discovered device card">
             <Text style={styles.deviceCardEyebrow}>SENSOR BOX ОБНАРУЖЕН</Text>
@@ -170,7 +139,6 @@ export default function DeviceConnectionScreen({ onConnected }: DeviceConnection
               ID: {device!.id}
             </Text>
 
-            {/* Sensor chips */}
             <View style={styles.chipRow}>
               {SENSOR_CHIPS.map((chip) => (
                 <View key={chip} style={styles.sensorChip}>
@@ -181,14 +149,12 @@ export default function DeviceConnectionScreen({ onConnected }: DeviceConnection
           </View>
         )}
 
-        {/* ── Error banner ── */}
         {status === "error" && error && (
           <View style={styles.errorBanner} accessibilityRole="alert">
             <Text style={styles.errorBannerText}>{error}</Text>
           </View>
         )}
 
-        {/* ── Reconnecting banner (TASK 40) ── */}
         {isReconnecting && (
           <View style={styles.reconnectBanner} accessibilityRole="status">
             <View style={styles.reconnectRow}>
@@ -201,7 +167,6 @@ export default function DeviceConnectionScreen({ onConnected }: DeviceConnection
               Автоматическое переподключение к Sensor Box…{"\n"}
               Убедитесь, что устройство включено и рядом.
             </Text>
-            {/* Progress bar */}
             <View style={styles.reconnectTrack}>
               <View
                 style={[
@@ -213,7 +178,6 @@ export default function DeviceConnectionScreen({ onConnected }: DeviceConnection
           </View>
         )}
 
-        {/* ── CTA area ── */}
         <View style={styles.ctaStack}>
           {!isConnected && !hasDevice && (
             <TouchableOpacity
@@ -292,7 +256,6 @@ export default function DeviceConnectionScreen({ onConnected }: DeviceConnection
           )}
         </View>
 
-        {/* ── Bottom caption ── */}
         <Text style={styles.caption}>
           {"Убедитесь, что Sensor Box включён\nи находится рядом."}
         </Text>
@@ -301,7 +264,6 @@ export default function DeviceConnectionScreen({ onConnected }: DeviceConnection
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
@@ -315,7 +277,6 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // Logo
   logoLockup: {
     alignItems: "center",
     marginBottom: Spacing.xxl,
@@ -356,7 +317,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // Animated ring
   ringContainer: {
     width: 140,
     height: 140,
@@ -386,7 +346,6 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
 
-  // Status pill
   statusPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -411,7 +370,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
 
-  // Device card
   card: {
     width: "100%",
     backgroundColor: Colors.white,
@@ -466,7 +424,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // Error banner
+  
   errorBanner: {
     width: "100%",
     backgroundColor: Colors.errorBg,
@@ -483,7 +441,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // CTAs
+  
   ctaStack: {
     width: "100%",
     gap: Spacing.sm,
@@ -524,7 +482,7 @@ const styles = StyleSheet.create({
     color: Colors.ink,
   },
 
-  // Caption
+  
   caption: {
     fontFamily: "System",
     fontSize: 12,
@@ -533,7 +491,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // Reconnect banner (TASK 40)
+  
   reconnectBanner: {
     width: "100%",
     backgroundColor: Colors.warningBg,

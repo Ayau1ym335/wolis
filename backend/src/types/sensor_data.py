@@ -1,10 +1,7 @@
-
 from __future__ import annotations
 import math
 from pydantic import BaseModel, Field, field_validator
-
 VIBRATION_MAGNITUDE_MAX_G = 16.0
-
 
 def _validate_physical_range(value: float, name: str, low: float, high: float) -> float:
     """Check that `value` is a finite number within [low, high]."""
@@ -47,4 +44,4 @@ class SensorData(BaseModel):
     @field_validator("vibration_magnitude")
     @classmethod
     def validate_vibration_magnitude(cls, value: float) -> float:
-        return _validate_physical_range(value, "vibration_magnitude", 0, VIBRATION_MAGNITUDE_MAX_G)
+        return _validate_physical_range(value, "vibration_magnitude", 0, VIBRATION_MAGNITUDE_MAX_G)

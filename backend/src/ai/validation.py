@@ -77,7 +77,7 @@ def get_assessment(
 ) -> AssessmentResult:
     try:
         result = predict(sensor_data, building_context, models)
-    except Exception as exc:  # noqa: BLE001 - intentionally broad: any model
+    except Exception as exc:  # noqa: BLE001
         log_event(
             "model_inference_failed",
             error=str(exc),

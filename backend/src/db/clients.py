@@ -18,7 +18,6 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
 def get_session():
-    """FastAPI-style dependency: yields a session, closes it after the request."""
     session = SessionLocal()
     try:
         yield session

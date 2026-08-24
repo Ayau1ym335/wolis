@@ -1,22 +1,4 @@
-/**
- * screens/ReportPreviewScreen/index.tsx
- *
- * TASK 39 — "Export PDF" flow screen.
- *
- * States:
- *   generating  → spinner + "Генерируем PDF…" text
- *   ready       → success card with download URL link + "Открыть PDF" button
- *   error       → error card with retry
- *
- * Opening the URL:
- *   - React Native: Linking.openURL(url)
- *   - The URL is the public Supabase Storage link, so it opens directly
- *     in the device browser / PDF viewer.
- *
- * Props:
- *   sessionId   — used to call generateReport()
- *   onBack      — navigation back to ResultsScreen
- */
+
 
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -34,18 +16,18 @@ import {
 import { Colors, Radius, Shadow, Spacing } from "../../theme";
 import { generateReport } from "../../services/reportsApi";
 
-// ─── Copy-link helper (clipboard fallback) ────────────────────────────────────
+
 async function openUrl(url: string): Promise<void> {
   const supported = await Linking.canOpenURL(url);
   if (supported) {
     await Linking.openURL(url);
   } else {
-    // Fallback: try to open anyway (some custom schemes report false)
+    
     await Linking.openURL(url);
   }
 }
 
-// ─── Checkmark animation ──────────────────────────────────────────────────────
+
 function CheckCircle() {
   const scale = React.useRef(new Animated.Value(0)).current;
   const opacity = React.useRef(new Animated.Value(0)).current;
@@ -74,13 +56,13 @@ const checkStyles = StyleSheet.create({
   mark: { fontSize: 30, color: Colors.success },
 });
 
-// ─── URL card ─────────────────────────────────────────────────────────────────
+
 function UrlCard({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
-    // In Expo: use expo-clipboard; in bare RN: @react-native-clipboard/clipboard
-    // Fallback: just show a confirmation
+    
+    
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -113,7 +95,7 @@ const urlStyles = StyleSheet.create({
   copyHint: { fontFamily: "System", fontSize: 10.5, color: Colors.blushDark },
 });
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
+
 export interface ReportPreviewScreenProps {
   sessionId: string;
   onBack?: () => void;
@@ -143,7 +125,7 @@ export default function ReportPreviewScreen({ sessionId, onBack }: ReportPreview
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* ── Header ── */}
+      {}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={onBack}
@@ -157,7 +139,7 @@ export default function ReportPreviewScreen({ sessionId, onBack }: ReportPreview
       </View>
 
       <View style={styles.body}>
-        {/* ── Generating ── */}
+        {}
         {state.phase === "generating" && (
           <View style={styles.center}>
             <ActivityIndicator size="large" color={Colors.maroon} />
@@ -168,7 +150,7 @@ export default function ReportPreviewScreen({ sessionId, onBack }: ReportPreview
           </View>
         )}
 
-        {/* ── Ready ── */}
+        {}
         {state.phase === "ready" && (
           <View style={styles.center}>
             <CheckCircle />
@@ -201,7 +183,7 @@ export default function ReportPreviewScreen({ sessionId, onBack }: ReportPreview
           </View>
         )}
 
-        {/* ── Error ── */}
+        {}
         {state.phase === "error" && (
           <View style={styles.center}>
             <View style={styles.errorCircle}>
@@ -225,7 +207,7 @@ export default function ReportPreviewScreen({ sessionId, onBack }: ReportPreview
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.offwhite },
 
@@ -246,7 +228,7 @@ const styles = StyleSheet.create({
 
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
 
-  // Generating
+  
   generatingTitle: {
     fontFamily: "System", fontWeight: "700", fontSize: 18, color: Colors.ink,
     marginTop: Spacing.xl, marginBottom: Spacing.sm, textAlign: "center",
@@ -256,7 +238,7 @@ const styles = StyleSheet.create({
     textAlign: "center", lineHeight: 19,
   },
 
-  // Ready
+  
   readyTitle: {
     fontFamily: "System", fontWeight: "700", fontSize: 22, color: Colors.ink,
     marginBottom: Spacing.sm, textAlign: "center",
@@ -266,7 +248,7 @@ const styles = StyleSheet.create({
     textAlign: "center", lineHeight: 19, marginBottom: Spacing.xl,
   },
 
-  // Error
+  
   errorCircle: {
     width: 72, height: 72, borderRadius: 36, backgroundColor: Colors.errorBg,
     alignItems: "center", justifyContent: "center", marginBottom: Spacing.lg,
@@ -282,7 +264,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
 
-  // Buttons
+  
   btnPrimary: {
     width: "100%", backgroundColor: Colors.maroon, paddingVertical: 15,
     borderRadius: Radius.md, alignItems: "center", marginBottom: Spacing.sm,

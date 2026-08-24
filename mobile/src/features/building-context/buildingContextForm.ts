@@ -1,21 +1,9 @@
-/**
- * features/building-context/buildingContextForm.ts
- *
- * TASK 32 — Validation schema, field configs, and form helpers for the
- * BuildingContextFormScreen.  No external form library is required — this
- * module provides a hand-rolled validator that matches the
- * BuildingContextFormValues interface and is completely independent of BLE /
- * backend.
- */
-
 import type {
   BuildingContextFormValues,
   BuildingType,
   Material,
   Region,
 } from "../../types/wolis";
-
-// ─── Field option lists ────────────────────────────────────────────────────────
 
 export interface SelectOption<T extends string> {
   value: T;
@@ -43,8 +31,6 @@ export const REGION_OPTIONS: SelectOption<Region>[] = [
   { value: "arid",        label: "Засушливый",      description: "Жара / низкая влажность" },
   { value: "coastal",     label: "Прибрежный",      description: "Высокая влажность / соль" },
 ];
-
-// ─── Validation ────────────────────────────────────────────────────────────────
 
 export type FormErrors = Partial<Record<keyof BuildingContextFormValues, string>>;
 
@@ -91,12 +77,10 @@ export function validateBuildingContext(
   return errors;
 }
 
-/** Returns true when values pass all validation rules. */
 export function isFormValid(values: Partial<BuildingContextFormValues>): boolean {
   return Object.keys(validateBuildingContext(values)).length === 0;
 }
 
-/** Default / empty form state. */
 export const EMPTY_FORM: Partial<BuildingContextFormValues> = {
   building_type: undefined,
   age_years: undefined,

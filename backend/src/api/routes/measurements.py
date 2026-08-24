@@ -39,22 +39,15 @@ async def assess_measurement(
     measurement_repository: MeasurementRepository = Depends(get_measurement_repository),
     measurement_service: MeasurementService = Depends(get_measurement_service),
 ) -> MeasurementResultResponse:
-    # 1. Evaluate (sync ML inference — run in threadpool to avoid blocking the event loop)
     assessment_result = await asyncio.to_thread(
         assessment_service.assess_measurement, session_id
     )
     assessment = assessment_repository.get_by_session_id(session_id)
-    
-    # 2. Get building context
     measurement = measurement_repository.get_by_id(session_id)
     building_context = measurement_repository.to_building_context(measurement)
-
-    # 3. Generate solutions (sync — run in threadpool)
     solution_drafts = await asyncio.to_thread(
         solution_generation_service.generate_solutions, assessment_result, building_context
     )
-    
-    # 4. Calculate costs (sync — run in threadpool)
     priced_solutions = await asyncio.to_thread(
         cost_calculation_service.calculate_costs,
         solution_drafts,
@@ -62,8 +55,6 @@ async def assess_measurement(
         assessment_result.key_concerns,
         building_context.area_m2,
     )
-
-    # 5. Save solutions
     for sol in priced_solutions:
         sol_id = solution_repository.create({
             "assessment_id": assessment.id,
@@ -100,7 +91,6 @@ async def list_measurements(
     user_id: uuid.UUID = Depends(get_current_user_id),
     service: MeasurementService = Depends(get_measurement_service),
 ) -> list[MeasurementHistoryItem]:
-    """Return the authenticated user's measurement sessions, newest first."""
     return await service.list_measurements(user_id=user_id)
 
 
@@ -110,5 +100,4 @@ async def get_measurement_result(
     user_id: uuid.UUID = Depends(get_current_user_id),
     service: MeasurementService = Depends(get_measurement_service),
 ) -> MeasurementResultResponse:
-    """Return full result (assessment + solutions) for a single session."""
     return await service.get_measurement_result(session_id=session_id, user_id=user_id)

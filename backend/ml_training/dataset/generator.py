@@ -61,10 +61,6 @@ TILT_NOISE_SIGMA_DEG = 0.15
 VIBRATION_NOISE_SIGMA = 0.03
 SHOCK_BASE_PROBABILITY = 0.05  
 
-# TODO: these are illustrative regional profiles, not sourced from real
-# climate data for the target region — acceptable as noise-shape references
-# per the earlier decision to use public datasets only for calibrating noise,
-# not as training data itself.
 CLIMATE_ZONE_PROFILES = {
     "temperate": {"temp_mean": 15.0, "temp_sigma": 6.0, "humidity_mean": 55.0, "humidity_sigma": 10.0, "pressure_mean": 1013.0, "pressure_sigma": 6.0},
     "continental": {"temp_mean": 10.0, "temp_sigma": 12.0, "humidity_mean": 50.0, "humidity_sigma": 12.0, "pressure_mean": 1015.0, "pressure_sigma": 8.0},
@@ -79,7 +75,6 @@ LIGHTING_BASE_LUX_BY_BUILDING_TYPE = {
     "industrial": 300.0,
 }
 LIGHTING_NOISE_SIGMA = 80.0
-
 
 def _generate_sensor_readings(
     true_degradation_level: float,
@@ -141,9 +136,7 @@ def _compute_labels(sensor_readings: dict, context: dict) -> dict:
         "overall_status": overall.value,
     }
 
-
 LABEL_NOISE_RATE = 0.04 
-
 def _flip_to_neighbor(label: str, rng: np.random.Generator) -> str:
     idx = STATUS_ORDER.index(label)
     if idx == 0:
@@ -182,9 +175,6 @@ def generate_dataset(n_rows: int, seed: int) -> pd.DataFrame:
             **context,
             **sensor_readings,
             **labels,
-            # kept for dataset auditing/debugging only — NOT a feature the
-            # model should ever see at inference time, since it is not
-            # observable from real sensors.
             "_true_degradation_level": round(true_degradation_level, 4),
         }
         rows.append(row)
@@ -193,7 +183,6 @@ def generate_dataset(n_rows: int, seed: int) -> pd.DataFrame:
 
 
 def _print_class_balance(df: pd.DataFrame) -> None:
-    print("\nClass balance (overall_status):")
     counts = df["overall_status"].value_counts(normalize=True).round(3)
     for status in STATUS_ORDER:
         pct = counts.get(status, 0.0)
@@ -201,17 +190,16 @@ def _print_class_balance(df: pd.DataFrame) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate the Wolis synthetic training dataset.")
-    parser.add_argument("--n-rows", type=int, default=12000, help="Number of rows to generate.")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility.")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--n-rows", type=int, default=12000)
+    parser.add_argument("--seed", type=int, default=42)
     default_output = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "synthetic_dataset.csv"
     )
     parser.add_argument(
         "--output",
         type=str,
-        default=default_output,
-        help="Output CSV path. Defaults to synthetic_dataset.csv next to this script.",
+        default=default_output
     )
     args = parser.parse_args()
 

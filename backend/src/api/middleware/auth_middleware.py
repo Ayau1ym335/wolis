@@ -1,15 +1,4 @@
-"""
-Authentication dependency for protected routes.
-
-Implemented as a FastAPI dependency (not a starlette-style middleware)
-because that lets individual routes opt in explicitly — e.g. a future
-public health-check endpoint stays unauthenticated without special-casing
-it in a global middleware. Every protected route simply declares
-`current_user: AuthenticatedUser = Depends(get_current_user)`.
-"""
-
 from fastapi import Header, HTTPException, status
-
 from src.external.auth_client import (
     AuthClient,
     AuthenticatedUser,
@@ -18,8 +7,6 @@ from src.external.auth_client import (
 )
 
 _AUTH_SCHEME_PREFIX = "Bearer "
-
-
 def _extract_bearer_token(authorization: str | None) -> str:
     if not authorization:
         raise HTTPException(
@@ -39,14 +26,6 @@ def _extract_bearer_token(authorization: str | None) -> str:
 def get_current_user(
     authorization: str | None = Header(default=None),
 ) -> AuthenticatedUser:
-    """
-    FastAPI dependency: extracts and verifies the bearer token from
-    the Authorization header, returning the authenticated user.
-
-    Raises 401 for any failure case (missing header, malformed header,
-    invalid/expired token) — the route handler never has to think
-    about auth failure modes, only about what to do with a valid user.
-    """
     token = _extract_bearer_token(authorization)
     auth_client: AuthClient = get_auth_client()
 

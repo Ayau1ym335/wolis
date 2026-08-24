@@ -67,10 +67,6 @@ def _compute_overall_risk_score(critical_probs: dict[str, float]) -> float:
     )
     return round(weighted_sum * 100.0, 1)
 
-
-
-
-
 def predict(
     sensor_data: SensorData,
     building_context: BuildingContext,
@@ -95,8 +91,6 @@ def predict(
         critical_probs[group] = _critical_probability(model, encoded_X)
 
     overall_risk_score = _compute_overall_risk_score(critical_probs)
-    # Delegate to the canonical rules function — same logic used by the
-    # rule-based fallback path, keeping both paths in sync automatically.
     overall_status = Status(
         _rules_compute_overall_status(
             group_statuses["structural"],

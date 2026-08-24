@@ -1,27 +1,23 @@
-/**
- * src/theme/index.ts
- * Wolis brand design tokens.
- * Brand palette: #731919 (maroon), #bfa4b8 (blush/mauve), black, #f5f5f7 (offwhite)
- */
+
 
 export const Colors = {
-  // Brand primaries
+  
   maroon: "#731919",
   maroonDark: "#4a1010",
   maroonLight: "#9e2222",
 
-  // Neutrals
+  
   ink: "#141616",
   white: "#ffffff",
   offwhite: "#f5f5f7",
   stone: "#f0ebe6",
 
-  // Mauve / blush accent
+  
   blush: "#bfa4b8",
   blushLight: "#e1cadb",
   blushDark: "#8c6d84",
 
-  // Functional
+  
   success: "#2d7d5a",
   successBg: "#d4ede4",
   warning: "#c4781a",
@@ -29,12 +25,12 @@ export const Colors = {
   error: "#731919",
   errorBg: "#fde8e8",
 
-  // Surface / border
+  
   surfaceAlt: "#f0ebe6",
   border: "#e4dcd8",
   borderLight: "#ede8e4",
 
-  // Text hierarchy
+  
   textPrimary: "#141616",
   textSecondary: "#8c7680",
   textTertiary: "#b0a4a8",

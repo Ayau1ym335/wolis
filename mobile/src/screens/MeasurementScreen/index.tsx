@@ -1,22 +1,4 @@
-/**
- * screens/MeasurementScreen/index.tsx
- *
- * TASK 31 — Экран запуска измерения + отображение сырых показаний в реальном времени.
- *
- * Layout:
- *   • Header: breadcrumb "01 / 03", title, live "LIVE" badge
- *   • 2-column sensor readings grid (auto-updates as packets arrive)
- *   • Packet counter / elapsed timer
- *   • "Завершить и отправить в AI" CTA → calls onSubmit with averagedReading
- *   • Stop / resume control
- *
- * Reading flags:
- *   humidity_pct > 70    → "Требует внимания"
- *   tilt_angle_deg > 2   → "Требует внимания"
- *   shock_detected       → "Удар!" (maroon)
- *
- * Design: Wolis brand tokens, serif page title, mono values, blush accents.
- */
+
 
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -35,7 +17,7 @@ import { useMeasurementSession } from "../../features/measurement/useMeasurement
 import type { BleAdapter } from "../../features/ble_connection/bleadapter";
 import type { RawSensorPacket } from "../../types/wolis";
 
-// ─── Sensor reading descriptor ────────────────────────────────────────────────
+
 interface ReadingDescriptor {
   key: keyof RawSensorPacket;
   label: string;
@@ -76,7 +58,7 @@ const READINGS: ReadingDescriptor[] = [
   },
 ];
 
-// ─── Flicker animation on value update ───────────────────────────────────────
+
 function useFlicker(value: number | boolean | null) {
   const anim = useRef(new Animated.Value(1)).current;
   const prevRef = useRef(value);
@@ -94,7 +76,7 @@ function useFlicker(value: number | boolean | null) {
   return anim;
 }
 
-// ─── Single reading card ──────────────────────────────────────────────────────
+
 function ReadingCard({
   descriptor,
   reading,
@@ -139,7 +121,7 @@ function ReadingCard({
   );
 }
 
-// ─── Live badge ───────────────────────────────────────────────────────────────
+
 function LiveBadge({ active }: { active: boolean }) {
   const pulse = useRef(new Animated.Value(1)).current;
 
@@ -165,13 +147,13 @@ function LiveBadge({ active }: { active: boolean }) {
   );
 }
 
-// ─── Main screen ─────────────────────────────────────────────────────────────
+
 export interface MeasurementScreenProps {
-  /** BLE adapter from the connected device (from useBleDevice) */
+  
   adapter: BleAdapter;
-  /** Called with the averaged reading snapshot when user is done */
+  
   onSubmit?: (reading: RawSensorPacket) => void;
-  /** Go back to connection screen */
+  
   onBack?: () => void;
 }
 
@@ -182,7 +164,7 @@ export default function MeasurementScreen({ adapter, onSubmit, onBack }: Measure
   const isRecording = status === "recording";
   const isStopped = status === "stopped";
 
-  // Elapsed timer
+  
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     if (!isRecording) return;
@@ -199,7 +181,7 @@ export default function MeasurementScreen({ adapter, onSubmit, onBack }: Measure
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Header ── */}
+        {}
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityLabel="Назад">
             <Text style={styles.backArrow}>←</Text>
@@ -211,7 +193,7 @@ export default function MeasurementScreen({ adapter, onSubmit, onBack }: Measure
           <LiveBadge active={isRecording} />
         </View>
 
-        {/* ── Sub-caption ── */}
+        {}
         <Text style={styles.subCaption}>
           {isRecording
             ? "Sensor Box подключён. Идёт сбор данных с объекта."
@@ -220,7 +202,7 @@ export default function MeasurementScreen({ adapter, onSubmit, onBack }: Measure
             : "Нажмите «Начать», чтобы запустить сбор данных."}
         </Text>
 
-        {/* ── Stats row ── */}
+        {}
         <View style={styles.statsRow}>
           <View style={styles.statCell}>
             <Text style={styles.statValue}>{packetCount}</Text>
@@ -240,21 +222,21 @@ export default function MeasurementScreen({ adapter, onSubmit, onBack }: Measure
           </View>
         </View>
 
-        {/* ── Readings grid ── */}
+        {}
         <View style={styles.readingsGrid}>
           {READINGS.map((desc) => (
             <ReadingCard key={desc.key} descriptor={desc} reading={latestReading} />
           ))}
         </View>
 
-        {/* ── Error ── */}
+        {}
         {status === "error" && error && (
           <View style={styles.errorBanner} accessibilityRole="alert">
             <Text style={styles.errorText}>{error}</Text>
           </View>
         )}
 
-        {/* ── CTA area ── */}
+        {}
         <View style={styles.ctaStack}>
           {status === "idle" && (
             <TouchableOpacity
@@ -320,7 +302,7 @@ export default function MeasurementScreen({ adapter, onSubmit, onBack }: Measure
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
@@ -333,7 +315,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // Header
+  
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -363,7 +345,7 @@ const styles = StyleSheet.create({
     color: Colors.ink,
   },
 
-  // Live badge
+  
   liveBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -393,7 +375,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
-  // Sub-caption
+  
   subCaption: {
     fontFamily: "System",
     fontSize: 12.5,
@@ -404,7 +386,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
 
-  // Stats
+  
   statsRow: {
     flexDirection: "row",
     backgroundColor: Colors.white,
@@ -439,7 +421,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Readings grid
+  
   readingsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -496,7 +478,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // Error
+  
   errorBanner: {
     backgroundColor: Colors.errorBg,
     borderRadius: Radius.md,
@@ -512,7 +494,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // CTAs
+  
   ctaStack: {
     gap: Spacing.sm,
   },

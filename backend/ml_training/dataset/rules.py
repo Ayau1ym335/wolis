@@ -6,9 +6,6 @@ class Status(str, Enum):
     CRITICAL = "critical"
 
 _STATUS_SEVERITY_ORDER = [Status.NORMAL, Status.ATTENTION, Status.CRITICAL]
-
-# Public ordered list of status values (str) — single source of truth for
-# both the dataset generator and the training/evaluation scripts.
 STATUS_ORDER = [s.value for s in _STATUS_SEVERITY_ORDER]
 
 
@@ -49,19 +46,6 @@ def evaluate_structural(
     shock_detected: bool,
     age_years: int,
 ) -> Status:
-    """
-    Evaluate structural status from tilt, vibration, shock, and building age.
-
-    Logic:
-      1. Apply an age-based multiplier to the base tilt/vibration thresholds
-         (older buildings are judged more strictly).
-      2. Classify tilt and vibration independently against their adjusted
-         thresholds.
-      3. shock_detected forces a minimum of ATTENTION regardless of tilt/
-         vibration, since a strong mechanical shock is itself a notable event
-         (SW-420 signal) even if it did not (yet) shift tilt/vibration readings.
-      4. Overall structural status is the most severe of the three signals.
-    """
     multiplier = _age_threshold_multiplier(age_years)
 
     tilt_attention = STRUCTURAL_TILT_THRESHOLDS_DEG["attention"] * multiplier
@@ -105,19 +89,6 @@ def evaluate_climate(
     pressure_hpa: float,
     material: str,
 ) -> Status:
-    """
-    Evaluate climate status from temperature, humidity, pressure, and
-    construction material.
-
-    Logic:
-      1. Humidity is checked against material-specific thresholds — this is
-         the dominant signal for this group.
-      2. Temperature and pressure outside their normal operating ranges add
-         at most ATTENTION (not CRITICAL) in the MVP — extreme readings alone
-         are not treated as structurally critical without corroborating
-         humidity/structural signals.
-      3. Overall climate status is the most severe of the individual signals.
-    """
     material_key = material.lower()
     thresholds = CLIMATE_HUMIDITY_THRESHOLDS_BY_MATERIAL.get(
         material_key, CLIMATE_HUMIDITY_THRESHOLDS_BY_MATERIAL["mixed"]

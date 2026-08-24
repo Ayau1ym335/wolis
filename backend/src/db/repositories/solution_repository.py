@@ -7,7 +7,6 @@ from src.db.models.material import Material
 from src.db.models.solution import Solution
 from src.db.models.solution_material import SolutionMaterial
 
-
 @dataclass(frozen=True)
 class SolutionMaterialData:
     material: Material

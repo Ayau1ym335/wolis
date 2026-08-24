@@ -1,18 +1,4 @@
-/**
- * screens/HistoryScreen/index.tsx
- *
- * TASK 37 — List of past measurement sessions.
- *
- * Fetches GET /measurements on mount, shows:
- *   • Each session as a card: date, building type, material, risk badge
- *   • Tap → load full result → navigate to ResultsScreen
- *   • Pull-to-refresh
- *   • Empty state when no sessions exist
- *   • Error state with retry
- *
- * Navigation: receives onSelectSession(result) prop so WolisNavigator
- * can push ResultsScreen with the loaded WolisResult.
- */
+
 
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -31,7 +17,7 @@ import { getHistory, getSessionResult } from "../../services/measurementsApi";
 import { RiskBadge } from "../../components/RiskBadge";
 import type { MeasurementSummary, WolisResult, Status } from "../../types/wolis";
 
-// ─── Date helpers ─────────────────────────────────────────────────────────────
+
 function formatDate(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "short", year: "numeric" });
@@ -42,7 +28,7 @@ function formatTime(iso: string): string {
   return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 }
 
-// ─── Building type labels ─────────────────────────────────────────────────────
+
 const TYPE_LABELS: Record<string, string> = {
   residential: "Жилой",
   commercial: "Коммерческий",
@@ -56,7 +42,7 @@ const MAT_LABELS: Record<string, string> = {
   mixed: "Смешанный",
 };
 
-// ─── Session row card ─────────────────────────────────────────────────────────
+
 interface SessionCardProps {
   item: MeasurementSummary & {
     overall_status?: string | null;
@@ -78,7 +64,7 @@ function SessionCard({ item, onPress, loading }: SessionCardProps) {
       accessibilityRole="button"
       accessibilityLabel={`Обследование от ${formatDate(item.session_id)}`}
     >
-      {/* Left accent bar */}
+      {}
       <View
         style={[
           styles.cardAccent,
@@ -94,7 +80,7 @@ function SessionCard({ item, onPress, loading }: SessionCardProps) {
       />
 
       <View style={styles.cardBody}>
-        {/* Top row */}
+        {}
         <View style={styles.cardTop}>
           <View style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>
@@ -113,7 +99,7 @@ function SessionCard({ item, onPress, loading }: SessionCardProps) {
           )}
         </View>
 
-        {/* Bottom row */}
+        {}
         <View style={styles.cardBottom}>
           <Text style={styles.cardDate}>
             {formatDate(String(item.session_id))}
@@ -134,7 +120,7 @@ function SessionCard({ item, onPress, loading }: SessionCardProps) {
   );
 }
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
+
 function EmptyState() {
   return (
     <View style={styles.emptyWrap}>
@@ -149,7 +135,7 @@ function EmptyState() {
   );
 }
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
+
 export interface HistoryScreenProps {
   onSelectSession: (result: WolisResult) => void;
   onBack?: () => void;
@@ -172,7 +158,7 @@ export default function HistoryScreen({ onSelectSession, onBack }: HistoryScreen
     else setLoadingList(true);
     setListError(null);
     try {
-      // Backend returns MeasurementHistoryItem[] which is a superset of MeasurementSummary
+      
       const data = await getHistory() as HistoryItem[];
       setItems(data);
     } catch (e) {
@@ -193,7 +179,7 @@ export default function HistoryScreen({ onSelectSession, onBack }: HistoryScreen
       const result = await getSessionResult(item.session_id);
       onSelectSession(result);
     } catch (e) {
-      // Show inline error — don't crash the list
+      
       setListError((e as Error).message ?? "Не удалось загрузить результат.");
     } finally {
       setLoadingId(null);
@@ -202,7 +188,7 @@ export default function HistoryScreen({ onSelectSession, onBack }: HistoryScreen
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* ── Header ── */}
+      {}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={onBack}
@@ -215,7 +201,7 @@ export default function HistoryScreen({ onSelectSession, onBack }: HistoryScreen
         <View style={{ width: 32 }} />
       </View>
 
-      {/* ── Error banner ── */}
+      {}
       {listError && (
         <View style={styles.errorBanner} accessibilityRole="alert">
           <Text style={styles.errorText}>{listError}</Text>
@@ -225,7 +211,7 @@ export default function HistoryScreen({ onSelectSession, onBack }: HistoryScreen
         </View>
       )}
 
-      {/* ── List ── */}
+      {}
       {loadingList ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={Colors.maroon} />
@@ -263,7 +249,7 @@ export default function HistoryScreen({ onSelectSession, onBack }: HistoryScreen
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.offwhite },
 
@@ -306,7 +292,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // Session card
+  
   card: {
     flexDirection: "row",
     backgroundColor: Colors.white,
@@ -365,7 +351,7 @@ const styles = StyleSheet.create({
     fontWeight: "300",
   },
 
-  // Empty state
+  
   emptyWrap: { alignItems: "center", paddingVertical: Spacing.xxxl },
   emptyCircle: {
     width: 72,

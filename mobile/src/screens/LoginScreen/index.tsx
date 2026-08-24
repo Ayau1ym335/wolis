@@ -1,20 +1,4 @@
-/**
- * screens/LoginScreen/index.tsx
- *
- * TASK 36 — Email / password login screen.
- *
- * Design:
- *   • Wolis logo lock-up (same as DeviceConnectionScreen)
- *   • Email + password text inputs
- *   • "Войти" primary CTA → useAuth().signIn()
- *   • Loading state during request
- *   • Error banner with server message
- *   • Keyboard-avoiding scroll
- *
- * The screen is shown by WolisNavigator when status === "unauthenticated".
- * On success the AuthStore flips to "authenticated", WolisNavigator
- * moves to DeviceConnectionScreen automatically (no explicit navigate needed).
- */
+
 
 import React, { useRef, useState } from "react";
 import {
@@ -32,7 +16,7 @@ import {
 import { Colors, Radius, Shadow, Spacing } from "../../theme";
 import { useAuth } from "../../features/auth/useAuth";
 
-// ─── Wolis logo mark (shared visual) ─────────────────────────────────────────
+
 function WolisLogo() {
   return (
     <View style={styles.logoLockup}>
@@ -48,7 +32,7 @@ function WolisLogo() {
   );
 }
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
+
 export default function LoginScreen() {
   const { signIn, status, error } = useAuth();
   const isLoading = status === "loading";
@@ -94,12 +78,12 @@ export default function LoginScreen() {
         >
           <WolisLogo />
 
-          {/* ── Form card ── */}
+          {}
           <View style={styles.formCard}>
             <Text style={styles.formTitle}>Войти в аккаунт</Text>
             <Text style={styles.formSub}>Используйте email и пароль от Wolis.</Text>
 
-            {/* Email */}
+            {}
             <View style={styles.fieldWrap}>
               <Text style={styles.fieldLabel}>EMAIL</Text>
               <TextInput
@@ -118,7 +102,7 @@ export default function LoginScreen() {
               />
             </View>
 
-            {/* Password */}
+            {}
             <View style={styles.fieldWrap}>
               <Text style={styles.fieldLabel}>ПАРОЛЬ</Text>
               <TextInput
@@ -136,14 +120,14 @@ export default function LoginScreen() {
               />
             </View>
 
-            {/* Error banner */}
+            {}
             {displayError && (
               <View style={styles.errorBanner} accessibilityRole="alert">
                 <Text style={styles.errorText}>{displayError}</Text>
               </View>
             )}
 
-            {/* CTA */}
+            {}
             <TouchableOpacity
               style={[styles.btnPrimary, !canSubmit && styles.btnDisabled]}
               onPress={handleSignIn}
@@ -170,7 +154,7 @@ export default function LoginScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.offwhite },
   scroll: {
@@ -181,7 +165,7 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
   },
 
-  // Logo
+  
   logoLockup: { alignItems: "center", marginBottom: Spacing.xxl + 8 },
   logoRow: { flexDirection: "row", alignItems: "center", gap: 2, marginBottom: Spacing.xs },
   logoLetters: {
@@ -207,7 +191,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // Form card
+  
   formCard: {
     width: "100%",
     backgroundColor: Colors.white,
@@ -233,7 +217,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // Fields
+  
   fieldWrap: { marginBottom: Spacing.lg },
   fieldLabel: {
     fontFamily: "System",
@@ -256,7 +240,7 @@ const styles = StyleSheet.create({
     color: Colors.ink,
   },
 
-  // Error
+  
   errorBanner: {
     backgroundColor: Colors.errorBg,
     borderRadius: Radius.md,
@@ -267,7 +251,7 @@ const styles = StyleSheet.create({
   },
   errorText: { fontFamily: "System", fontSize: 13, color: Colors.maroon, lineHeight: 18 },
 
-  // CTA
+  
   btnPrimary: {
     width: "100%",
     backgroundColor: Colors.maroon,

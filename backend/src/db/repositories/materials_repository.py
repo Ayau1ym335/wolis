@@ -1,5 +1,4 @@
 from __future__ import annotations
-import uuid
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from src.db.models.material import Material

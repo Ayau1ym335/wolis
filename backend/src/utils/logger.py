@@ -14,9 +14,6 @@ if not logger.handlers:
     logger.addHandler(handler)
 
 def log_event(event_name: str, **kwargs: Any) -> None:
-    """
-    Log an event with optional kwargs.
-    """
     try:
         details = json.dumps(kwargs, default=str)
     except Exception:

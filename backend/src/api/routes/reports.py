@@ -1,21 +1,7 @@
-"""
-api/routes/reports.py
-
-TASK 38 — PDF report endpoint.
-
-POST /measurements/{session_id}/report
-  • Generates PDF for an existing session (must belong to the auth'd user)
-  • Uploads to Supabase Storage
-  • Returns { "download_url": "https://..." }
-"""
-
 from __future__ import annotations
-
 import uuid
-
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
-
 from src.api.dependencies import (
     get_assessment_repository,
     get_current_user_id,
@@ -29,11 +15,8 @@ from src.external.storage_client import StorageClient, get_storage_client
 from src.services.report_service import ReportService
 
 router = APIRouter(prefix="/measurements", tags=["reports"])
-
-
 class ReportResponse(BaseModel):
     download_url: str
-
 
 def get_report_service(
     measurement_repository: MeasurementRepository = Depends(get_measurement_repository),
@@ -52,20 +35,13 @@ def get_report_service(
 @router.post(
     "/{session_id}/report",
     response_model=ReportResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Generate PDF report for a measurement session",
+    status_code=status.HTTP_201_CREATED
 )
 async def generate_report(
     session_id: uuid.UUID,
     user_id: uuid.UUID = Depends(get_current_user_id),
     report_service: ReportService = Depends(get_report_service),
 ) -> ReportResponse:
-    """
-    Generates a PDF report for *session_id*, saves it to Supabase Storage,
-    and returns its public download URL.
-
-    Idempotent: calling again overwrites the previous file.
-    """
     download_url = await report_service.generate_report(
         session_id=session_id,
         user_id=user_id,

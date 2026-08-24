@@ -3,9 +3,6 @@ import joblib
 import pandas as pd
 from src.types.assessment import BuildingContext, SensorData
 
-# Must match ALL_FEATURE_COLUMNS in ml_training/training/train_model.py exactly
-# — same names, same order does not matter for a ColumnTransformer keyed by
-# name, but the SET of columns must match what the encoder was fit on.
 FEATURE_COLUMNS = [
     "temperature_c",
     "humidity_pct",
@@ -27,12 +24,6 @@ _DEFAULT_ENCODER_PATH = os.path.join(
 
 
 def load_encoder(encoder_path: str = _DEFAULT_ENCODER_PATH):
-    """
-    Load the fit-once feature encoder from disk. Intended to be called once
-    at application startup (see inference.load_models), not per-request —
-    joblib.load has non-trivial I/O cost and the encoder is immutable at
-    runtime.
-    """
     if not os.path.isfile(encoder_path):
         raise FileNotFoundError(
             f"Feature encoder not found at {encoder_path}. "
@@ -43,12 +34,6 @@ def load_encoder(encoder_path: str = _DEFAULT_ENCODER_PATH):
 
 
 def to_feature_row(sensor_data: SensorData, building_context: BuildingContext) -> pd.DataFrame:
-    """
-    Combine sensor readings and building context into a single-row DataFrame
-    with exactly the columns the encoder expects, in a format pandas/sklearn
-    can consume. Returns a DataFrame (not a dict or array) because the
-    encoder's ColumnTransformer selects columns by name.
-    """
     row = {
         "temperature_c": sensor_data.temperature_c,
         "humidity_pct": sensor_data.humidity_pct,
@@ -67,11 +52,5 @@ def to_feature_row(sensor_data: SensorData, building_context: BuildingContext) -
 
 
 def encode_features(sensor_data: SensorData, building_context: BuildingContext, encoder) -> "np.ndarray":
-    """
-    Encode a single (SensorData, BuildingContext) pair into the numeric
-    feature array the trained models expect. `encoder` must be a
-    previously-loaded, already-fit encoder (see load_encoder) — this
-    function only calls .transform(), never .fit()/.fit_transform().
-    """
     row_df = to_feature_row(sensor_data, building_context)
     return encoder.transform(row_df)

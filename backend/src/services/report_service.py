@@ -1,27 +1,4 @@
-"""
-services/report_service.py
-
-TASK 38 — Orchestrates PDF report generation for a measurement session.
-
-Responsibility chain:
-  1. Load MeasurementSession + Assessment + Solutions from DB
-  2. Build the Jinja2 context dict (human-readable labels, colour tokens)
-  3. Call pdf/report_generator.generate_pdf() → bytes
-  4. Determine a stable storage path and upload via StorageClient
-  5. Persist the Report row (storage_url) in the DB
-  6. Return the public download URL
-
-Design decisions:
-  - The service does NOT know about HTTP — it raises plain Python
-    exceptions; the route handler converts them to HTTPException.
-  - Storage path is deterministic: reports/{session_id}.pdf
-    → re-generating overwrites the previous file (upsert).
-  - All label mappings live here (not in the template) so the
-    template stays dumb.
-"""
-
 from __future__ import annotations
-
 import asyncio
 import json
 import uuid
@@ -36,8 +13,6 @@ from src.external.storage_client import StorageClient, StorageError
 from src.pdf.report_generator import generate_pdf
 from src.types.api_schemas import SolutionResultItem
 from src.types.assessment import AssessmentResult
-
-# ─── Label maps ───────────────────────────────────────────────────────────────
 
 _BUILDING_TYPE_LABELS: dict[str, str] = {
     "residential": "Жилой",
@@ -97,14 +72,6 @@ class ReportService:
         session_id: uuid.UUID,
         user_id: uuid.UUID,
     ) -> str:
-        """
-        Generate a PDF report for *session_id*, upload to Supabase Storage,
-        persist the Report row, and return the public download URL.
-
-        Raises HTTPException(404) if session not found / not owned by user.
-        Raises HTTPException(500) on PDF or storage failures.
-        """
-        # ── 1. Load session ──────────────────────────────────────────────
         session = self._measurement_repo.get_by_id(session_id)
         if not session or session.user_id != user_id:
             raise HTTPException(
@@ -112,14 +79,11 @@ class ReportService:
                 detail={"error": "not_found", "message": "Session not found."},
             )
 
-        # ── 2. Load assessment ───────────────────────────────────────────
         assessment_row = self._assessment_repo.get_by_session_id(session_id)
         assessment_domain: AssessmentResult | None = None
         overall_status = "normal"
 
         if assessment_row:
-            # parameter_flags and key_concerns may come back as JSON strings
-            # from PostgreSQL — deserialise defensively (same as assessment_repository).
             parameter_flags = assessment_row.parameter_flags
             if isinstance(parameter_flags, str):
                 parameter_flags = json.loads(parameter_flags)
@@ -138,7 +102,6 @@ class ReportService:
             })
             overall_status = assessment_row.overall_status
 
-        # ── 3. Load solutions ────────────────────────────────────────────
         solutions: list[SolutionResultItem] = []
         if assessment_row:
             for sw in self._solution_repo.get_by_assessment_id(assessment_row.id):
@@ -153,8 +116,6 @@ class ReportService:
                     }
                     for sm in sw.materials
                 ]
-                # required_changes may come back as a JSON string from PostgreSQL.
-                # Deserialise defensively (same fix as in measurement_service).
                 required_changes = sw.solution.required_changes or []
                 if isinstance(required_changes, str):
                     required_changes = json.loads(required_changes)
@@ -172,7 +133,6 @@ class ReportService:
                     )
                 )
 
-        # ── 4. Build template context ────────────────────────────────────
         generated_at = datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC")
         context = {
             "session_id": str(session_id),
@@ -195,9 +155,6 @@ class ReportService:
             "solutions": solutions,
         }
 
-        # ── 5. Generate PDF ──────────────────────────────────────────────
-        # WeasyPrint is synchronous and CPU-bound — run in threadpool to
-        # avoid blocking the FastAPI event loop.
         try:
             pdf_bytes = await asyncio.to_thread(generate_pdf, context)
         except (ImportError, RuntimeError) as exc:
@@ -205,8 +162,6 @@ class ReportService:
                 status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail={"error": "pdf_generation_failed", "message": str(exc)},
             ) from exc
-
-        # ── 6. Upload to storage ─────────────────────────────────────────
         object_path = f"reports/{session_id}.pdf"
         try:
             public_url = self._storage.upload(object_path, pdf_bytes)
@@ -216,13 +171,10 @@ class ReportService:
                 detail={"error": "storage_upload_failed", "message": str(exc)},
             ) from exc
 
-        # ── 7. Persist Report row ────────────────────────────────────────
         self._persist_report_row(session_id=session_id, storage_url=public_url)
-
         return public_url
 
     def _persist_report_row(self, session_id: uuid.UUID, storage_url: str) -> None:
-        """Upsert a Report row so re-generation updates the URL rather than creating a duplicate."""
         from src.db.models.report import Report
         from sqlalchemy import select
 

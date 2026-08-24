@@ -1,8 +1,4 @@
 import type { RawSensorPacket } from "../../types/wolis";
- 
-// Must match firmware/src/ble/ble_service.cpp's UUIDs exactly — see the
-// Phase 5 BLE packet contract note. Placeholder values here; the real UUIDs
-// are generated once and hardcoded identically on both sides.
 export const WOLIS_SERVICE_UUID = "0000a000-0000-1000-8000-00805f9b34fb";
 export const SENSOR_CHARACTERISTIC_UUID = "0000a001-0000-1000-8000-00805f9b34fb";
 export const DEVICE_NAME_PREFIX = "Wolis-SensorBox";
@@ -168,12 +164,6 @@ export function createRealBleAdapter(manager: BlePlxManagerLike): BleAdapter {
     },
   };
 }
- 
-// ---------------------------------------------------------------------------
-// Mock adapter — generates plausible synthetic packets on an interval.
-// Same BleAdapter interface as the real one, so callers (useBleDevice.ts)
-// never need to know which is active.
-// ---------------------------------------------------------------------------
  
 export interface MockBleAdapterOptions {
   intervalMs?: number;

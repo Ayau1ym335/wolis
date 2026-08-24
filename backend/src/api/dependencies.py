@@ -2,7 +2,6 @@ from __future__ import annotations
 from uuid import UUID
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
-
 from src.db.repositories.assessment_repository import AssessmentRepository
 from src.db.repositories.measurement_repository import MeasurementRepository
 from src.db.repositories.solution_repository import SolutionRepository
@@ -16,20 +15,10 @@ from src.services.cost_calculation_service import CostCalculationService
 from src.db.repositories.materials_repository import MaterialsRepository
 from src.ai.inference import ModelBundle, load_models
 
-# get_session from db/clients.py is already a FastAPI-style generator dependency.
 get_db_session = get_session
-
-
-
 def get_measurement_repository(
     db: Session = Depends(get_db_session)
 ) -> MeasurementRepository:
-    """
-    Фабрика репозитория. Реальная реализация подключает Supabase/Postgres
-    client (см. db/client.py) — вынесено в отдельную функцию, чтобы в тестах
-    можно было переопределить через app.dependency_overrides без импорта
-    реального DB-клиента.
-    """
     return MeasurementRepository(db=db)
 
 
@@ -60,11 +49,6 @@ def get_measurement_service(
 def get_current_user_id(
     current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> UUID:
-    """
-    TASK 35/36: real JWT verification via auth_middleware → auth_client.
-    Extracts the user_id UUID from the verified Supabase token.
-    Raises 401 automatically if the token is missing or invalid.
-    """
     try:
         return UUID(current_user.user_id)
     except (ValueError, AttributeError):
@@ -104,4 +88,4 @@ def get_cost_calculation_service(
     materials_repository: MaterialsRepository = Depends(get_materials_repository)
 ) -> CostCalculationService:
     return CostCalculationService(materials_repository=materials_repository)
-
+

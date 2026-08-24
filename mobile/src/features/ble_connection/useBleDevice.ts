@@ -1,24 +1,3 @@
-/**
- * src/features/ble_connection/useBleDevice.ts
- *
- * TASK 28 (original) + TASK 40 (reconnection resilience).
- *
- * Reconnection strategy:
- *   - The BLE adapter calls onError on the subscribeToReadings callback
- *     when the peripheral disconnects unexpectedly.
- *   - BleDeviceController listens for that and enters "reconnecting" status.
- *   - It retries up to MAX_RETRY_ATTEMPTS times with exponential back-off
- *     (BASE_RETRY_MS × 2^attempt, capped at MAX_RETRY_MS).
- *   - After all attempts fail it moves to "error" with a human-readable message.
- *   - The app keeps its accumulated measurement packets (useMeasurementSession
- *     uses a ref, so no state loss during the reconnect window).
- *   - The UI can read `retryAttempt` / `maxRetryAttempts` to show a retry
- *     progress indicator.
- *
- * New ConnectionStatus values added:
- *   "reconnecting" — active retry attempt in progress
- */
-
 import { useEffect, useRef, useState } from "react";
 import { env } from "../../config/env";
 import {
@@ -31,7 +10,6 @@ import {
 
 export type { ConnectionStatus, DiscoveredDevice };
 
-// ─── Reconnect config ─────────────────────────────────────────────────────────
 const MAX_RETRY_ATTEMPTS = 4;
 const BASE_RETRY_MS = 1_500;
 const MAX_RETRY_MS = 20_000;
@@ -40,20 +18,15 @@ function backoffMs(attempt: number): number {
   return Math.min(BASE_RETRY_MS * Math.pow(2, attempt), MAX_RETRY_MS);
 }
 
-// ─── Extended state ───────────────────────────────────────────────────────────
 export interface BleDeviceState {
   status: ConnectionStatus | "reconnecting";
   device: DiscoveredDevice | null;
   error: string | null;
-  /** Current retry attempt index (0-based). Meaningful when status="reconnecting". */
   retryAttempt: number;
-  /** Maximum number of retry attempts before giving up. */
   maxRetryAttempts: number;
 }
 
 type Listener = (state: BleDeviceState) => void;
-
-// ─── Controller ───────────────────────────────────────────────────────────────
 export class BleDeviceController {
   private state: BleDeviceState = {
     status: "disconnected",
@@ -64,11 +37,8 @@ export class BleDeviceController {
   };
   private listeners: Set<Listener> = new Set();
 
-  /** Cleanup callback returned by subscribeToReadings; null when not subscribed. */
   private unsubscribeReadings: (() => void) | null = null;
-  /** Retry timer handle */
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
-  /** Whether a reconnect loop is currently active */
   private isReconnecting = false;
 
   constructor(private adapter: BleAdapter) {}
@@ -87,7 +57,6 @@ export class BleDeviceController {
     for (const listener of this.listeners) listener(this.state);
   }
 
-  // ── Scan ───────────────────────────────────────────────────────────────────
   async scan(): Promise<void> {
     this._cancelRetry();
     this.setState({ status: "scanning", error: null, device: null, retryAttempt: 0 });
@@ -109,7 +78,6 @@ export class BleDeviceController {
     }
   }
 
-  // ── Connect ────────────────────────────────────────────────────────────────
   async connect(): Promise<void> {
     if (!this.state.device) {
       this.setState({ status: "error", error: "connect() вызван без найденного устройства." });
@@ -125,7 +93,6 @@ export class BleDeviceController {
     }
   }
 
-  // ── Disconnect (intentional) ───────────────────────────────────────────────
   async disconnect(): Promise<void> {
     this._cancelRetry();
     this.isReconnecting = false;
@@ -138,15 +105,6 @@ export class BleDeviceController {
     return this.adapter;
   }
 
-  // ── Reconnect API (called by useMeasurementSession on BLE error) ───────────
-  /**
-   * Kick off the reconnect loop.
-   * Safe to call multiple times — subsequent calls are ignored while
-   * a reconnect is already in progress.
-   *
-   * @param onReconnected — called after a successful reconnect so
-   *   useMeasurementSession can re-subscribe to readings.
-   */
   startReconnect(onReconnected?: () => void): void {
     if (this.isReconnecting) return;
     this.isReconnecting = true;
@@ -174,7 +132,6 @@ export class BleDeviceController {
     const delay = backoffMs(attempt);
     this.retryTimer = setTimeout(async () => {
       if (!this.isReconnecting || !this.state.device) {
-        // Interrupted (user disconnected intentionally or device lost)
         return;
       }
 
@@ -184,13 +141,10 @@ export class BleDeviceController {
         this.setState({ status: "connected", error: null, retryAttempt: 0 });
         onReconnected?.();
       } catch {
-        // Next attempt
         this._doReconnectLoop(attempt + 1, onReconnected);
       }
     }, delay);
   }
-
-  /** Cancel any in-progress retry loop (called on intentional disconnect). */
   private _cancelRetry(): void {
     if (this.retryTimer !== null) {
       clearTimeout(this.retryTimer);
@@ -199,7 +153,6 @@ export class BleDeviceController {
     this.isReconnecting = false;
   }
 
-  /** Unsubscribe from readings without fully disconnecting. */
   private _stopReadings(): void {
     if (this.unsubscribeReadings) {
       this.unsubscribeReadings();
@@ -207,12 +160,6 @@ export class BleDeviceController {
     }
   }
 
-  /**
-   * Register a readings subscription and watch for BLE disconnect errors.
-   * When an error arrives the controller automatically starts the reconnect loop.
-   *
-   * @returns cleanup function (unsubscribes readings)
-   */
   subscribeToReadings(
     onReading: Parameters<BleAdapter["subscribeToReadings"]>[0],
     onError: (error: Error) => void,
@@ -221,7 +168,6 @@ export class BleDeviceController {
     this._stopReadings();
 
     const unsub = this.adapter.subscribeToReadings(onReading, (error) => {
-      // Unexpected BLE disconnection — start retry loop
       this.startReconnect(onReconnected);
       onError(error);
     });
@@ -234,7 +180,6 @@ export class BleDeviceController {
   }
 }
 
-// ─── Factory ──────────────────────────────────────────────────────────────────
 function buildAdapter(): BleAdapter {
   if (env.USE_MOCK_BLE) {
     return createMockBleAdapter({ intervalMs: 1200 });
@@ -242,7 +187,6 @@ function buildAdapter(): BleAdapter {
   throw new Error("Real BLE not configured. Set WOLIS_USE_MOCK_BLE=true or provide a BleManager.");
 }
 
-// ─── React hook ───────────────────────────────────────────────────────────────
 export function useBleDevice() {
   const controllerRef = useRef<BleDeviceController | null>(null);
 
@@ -256,7 +200,6 @@ export function useBleDevice() {
   const [state, setState] = useState<BleDeviceState>(controller.getState());
 
   useEffect(() => {
-    // Re-sync immediately in case controller changed before mount
     setState(controller.getState());
     return controller.subscribe(setState);
   }, [controller]);

@@ -1,20 +1,3 @@
-/**
- * components/SolutionCard/index.tsx
- *
- * TASK 34 — Expandable solution card.
- *
- * Three visual themes:
- *   low_cost  → white card  (economical)
- *   optimal   → blush card  (recommended, AI pick)
- *   eco       → maroon card (dark, eco)
- *
- * Collapsed: eyebrow, title, goal text, price row.
- * Expanded:  + material line items table, required changes list.
- *
- * The card is self-contained — animation is driven by Animated.Value
- * so it works without Reanimated.
- */
-
 import React, { useRef, useState } from "react";
 import {
   Animated,
@@ -29,12 +12,9 @@ import {
 import type { SolutionSummary, SolutionType } from "../../types/wolis";
 import { Colors, Radius, Shadow, Spacing } from "../../theme";
 
-// Enable LayoutAnimation on Android
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-
-// ─── Theme per solution type ──────────────────────────────────────────────────
 interface SolutionTheme {
   cardBg: string;
   cardBorder: string;
@@ -107,22 +87,17 @@ const THEMES: Record<SolutionType, SolutionTheme> = {
   },
 };
 
-// ─── Solution meta info ───────────────────────────────────────────────────────
 const TYPE_META: Record<SolutionType, { eyebrow: string; defaultTitle: string; recommended?: boolean }> = {
   low_cost: { eyebrow: "Solution 1", defaultTitle: "Low cost" },
   optimal:  { eyebrow: "Solution 2", defaultTitle: "Optimal",  recommended: true },
   eco:      { eyebrow: "Solution 3", defaultTitle: "Eco" },
 };
 
-// ─── Format helpers ───────────────────────────────────────────────────────────
 function formatMoney(amount: number, currency: string): string {
   return `${(amount / 1_000_000).toFixed(1)} млн ${currency}`;
 }
-
-// ─── Component ────────────────────────────────────────────────────────────────
 export interface SolutionCardProps {
   solution: SolutionSummary;
-  /** Whether card starts in expanded state */
   defaultExpanded?: boolean;
 }
 
@@ -152,17 +127,14 @@ export function SolutionCard({ solution, defaultExpanded = false }: SolutionCard
       accessibilityState={{ expanded }}
       accessibilityLabel={`${meta.eyebrow}: ${meta.defaultTitle}`}
     >
-      {/* Corner fold decoration */}
       <View style={[styles.fold, { backgroundColor: "rgba(0,0,0,0.08)" }]} />
 
-      {/* Recommended badge */}
       {meta.recommended && (
         <View style={[styles.recommendedBadge, { backgroundColor: theme.tagBg }]}>
           <Text style={[styles.recommendedText, { color: theme.tagText }]}>AI Рекомендует</Text>
         </View>
       )}
 
-      {/* Header */}
       <Text style={[styles.eyebrow, { color: theme.eyebrowColor }]}>{meta.eyebrow}</Text>
       <Text style={[styles.title, { color: theme.titleColor }]}>{meta.defaultTitle}</Text>
       <Text style={[styles.goal, { color: theme.goalColor }]} numberOfLines={expanded ? undefined : 2}>
@@ -171,7 +143,6 @@ export function SolutionCard({ solution, defaultExpanded = false }: SolutionCard
           : "Оптимальный сценарий реставрации по данным датчиков."}
       </Text>
 
-      {/* Price row */}
       <View style={styles.priceRow}>
         <Text style={[styles.price, { color: theme.priceColor }]}>
           {formatMoney(solution.estimated_cost_amount, solution.estimated_cost_currency)}
@@ -183,10 +154,8 @@ export function SolutionCard({ solution, defaultExpanded = false }: SolutionCard
         )}
       </View>
 
-      {/* Expanded details */}
       {expanded && (
         <View style={[styles.details, { borderTopColor: theme.dividerColor }]}>
-          {/* Required changes */}
           {hasChanges && (
             <View style={{ marginBottom: Spacing.md }}>
               <Text style={[styles.detSectionLabel, { color: theme.eyebrowColor }]}>Изменения</Text>
@@ -199,7 +168,6 @@ export function SolutionCard({ solution, defaultExpanded = false }: SolutionCard
             </View>
           )}
 
-          {/* Resource savings */}
           {solution.estimated_savings_resources_description.trim().length > 0 && (
             <View style={[styles.resourcesBox, { backgroundColor: theme.changesBg }]}>
               <Text style={[styles.resourcesLabel, { color: theme.eyebrowColor }]}>Ресурсы</Text>
@@ -209,7 +177,6 @@ export function SolutionCard({ solution, defaultExpanded = false }: SolutionCard
             </View>
           )}
 
-          {/* Material line items */}
           {hasLineItems && (
             <>
               <Text style={[styles.detSectionLabel, { color: theme.eyebrowColor, marginTop: Spacing.md }]}>
@@ -235,7 +202,6 @@ export function SolutionCard({ solution, defaultExpanded = false }: SolutionCard
         </View>
       )}
 
-      {/* Expand/collapse chevron */}
       <Text style={[styles.chevron, { color: theme.eyebrowColor }]}>
         {expanded ? "▲" : "▼"}
       </Text>
@@ -243,7 +209,6 @@ export function SolutionCard({ solution, defaultExpanded = false }: SolutionCard
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   card: {
     borderRadius: Radius.lg,

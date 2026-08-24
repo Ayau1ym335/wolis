@@ -1,16 +1,3 @@
-/**
- * screens/BuildingContextFormScreen/index.tsx
- *
- * TASK 32 — Форма ввода типа/возраста/материала/площади/региона здания.
- *
- * Design:
- *   • Collapsible chip-selectors for enum fields (building_type, material, region)
- *   • Numeric text inputs for age_years and area_m2 with inline validation
- *   • Real-time field-level error messages under each field
- *   • Primary CTA disabled until isFormValid()
- *   • Wolis brand: maroon #731919, blush #bfa4b8, ink #141616, offwhite #f5f5f7
- */
-
 import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -36,7 +23,6 @@ import {
 } from "../../features/building-context/buildingContextForm";
 import type { BuildingContextFormValues, BuildingType, Material, Region } from "../../types/wolis";
 
-// ─── Chip selector ────────────────────────────────────────────────────────────
 function ChipSelector<T extends string>({
   options,
   value,
@@ -121,7 +107,6 @@ const chipStyles = StyleSheet.create({
   },
 });
 
-// ─── Numeric input ────────────────────────────────────────────────────────────
 function NumericField({
   label,
   placeholder,
@@ -214,7 +199,6 @@ const numStyles = StyleSheet.create({
   },
 });
 
-// ─── Section header ───────────────────────────────────────────────────────────
 function SectionHeader({ title, tag }: { title: string; tag?: string }) {
   return (
     <View style={sectionStyles.row}>
@@ -236,11 +220,9 @@ const sectionStyles = StyleSheet.create({
   },
 });
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
 export interface BuildingContextFormScreenProps {
   onSubmit: (values: BuildingContextFormValues) => void;
   onBack?: () => void;
-  /** If provided, shown as initial values (e.g. when editing) */
   initialValues?: Partial<BuildingContextFormValues>;
 }
 
@@ -252,7 +234,6 @@ export default function BuildingContextFormScreen({
   const [values, setValues] = useState<Partial<BuildingContextFormValues>>(
     initialValues ?? EMPTY_FORM
   );
-  // Errors are shown only after the user attempts to submit at least once
   const [submitted, setSubmitted] = useState(false);
 
   const errors: FormErrors = submitted ? validateBuildingContext(values) : {};
@@ -280,7 +261,6 @@ export default function BuildingContextFormScreen({
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ── Header ── */}
           <View style={styles.header}>
             <TouchableOpacity
               onPress={onBack}
@@ -300,7 +280,6 @@ export default function BuildingContextFormScreen({
             Уточните характеристики здания — это поможет AI подобрать точные решения.
           </Text>
 
-          {/* ── Building type ── */}
           <SectionHeader title="Тип здания" tag="обязательно" />
           <ChipSelector<BuildingType>
             options={BUILDING_TYPE_OPTIONS}
@@ -309,7 +288,6 @@ export default function BuildingContextFormScreen({
             error={errors.building_type}
           />
 
-          {/* ── Material ── */}
           <SectionHeader title="Основной материал" tag="обязательно" />
           <ChipSelector<Material>
             options={MATERIAL_OPTIONS}
@@ -318,7 +296,6 @@ export default function BuildingContextFormScreen({
             error={errors.material}
           />
 
-          {/* ── Region ── */}
           <SectionHeader title="Регион" tag="обязательно" />
           <ChipSelector<Region>
             options={REGION_OPTIONS}
@@ -327,7 +304,6 @@ export default function BuildingContextFormScreen({
             error={errors.region}
           />
 
-          {/* ── Numeric fields ── */}
           <SectionHeader title="Параметры" />
           <NumericField
             label="Возраст здания"
@@ -348,7 +324,6 @@ export default function BuildingContextFormScreen({
             testID="input-area-m2"
           />
 
-          {/* ── Validation summary (shown after first submit attempt) ── */}
           {submitted && !canSubmit && (
             <View style={styles.validationBanner} accessibilityRole="alert">
               <Text style={styles.validationBannerText}>
@@ -357,7 +332,6 @@ export default function BuildingContextFormScreen({
             </View>
           )}
 
-          {/* ── CTA ── */}
           <TouchableOpacity
             style={[styles.btnPrimary, !canSubmit && styles.btnDisabled]}
             onPress={handleSubmit}
@@ -374,7 +348,6 @@ export default function BuildingContextFormScreen({
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.offwhite },
   scroll: {

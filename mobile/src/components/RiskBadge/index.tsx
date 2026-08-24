@@ -1,13 +1,3 @@
-/**
- * components/RiskBadge/index.tsx
- *
- * TASK 34 — Pill badge that colour-codes a Status value.
- *
- *   normal   → green (successBg / success)
- *   attention → amber (warningBg / warning)
- *   critical  → maroon (errorBg / maroon)
- */
-
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { Status } from "../../types/wolis";
@@ -21,7 +11,6 @@ const META: Record<Status, { bg: string; fg: string; label: string; dot: string 
 
 export interface RiskBadgeProps {
   status: Status;
-  /** Override display label */
   label?: string;
   size?: "sm" | "md";
 }

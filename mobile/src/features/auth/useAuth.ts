@@ -1,33 +1,13 @@
-/**
- * features/auth/useAuth.ts
- *
- * TASK 36 — Supabase authentication for the mobile app.
- *
- * Architecture:
- *   - AuthStore  : singleton that holds the session in memory + AsyncStorage
- *   - useAuth()  : React hook that subscribes to the store
- *   - signIn()   : email/password → Supabase Auth REST → stores access_token
- *   - signOut()  : clears token everywhere (memory + storage + apiClient)
- *
- * On boot: restores persisted session and re-attaches token to apiClient.
- *
- * The access_token is automatically attached to ALL subsequent API requests
- * via setAuthToken() — apiClient reads it on every call through a closure.
- * No higher-order-component or context provider wrapping needed.
- */
-
 import { useEffect, useState } from "react";
 import { setAuthToken } from "../../services/apiClient";
 import { env } from "../../config/env";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface WolisSession {
   access_token: string;
   refresh_token: string;
   user_id: string;
   email: string | null;
-  expires_at: number; // Unix timestamp (seconds)
+  expires_at: number; 
 }
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated" | "error";
@@ -38,20 +18,14 @@ export interface AuthState {
   error: string | null;
 }
 
-// ─── Persistence layer (AsyncStorage polyfill for non-RN environments) ────────
-// In a real Expo/RN project replace this with:
-//   import AsyncStorage from "@react-native-async-storage/async-storage";
-
 const STORAGE_KEY = "@wolis/session";
 
 const storage = {
   async getItem(key: string): Promise<string | null> {
     try {
-      // React Native: AsyncStorage.getItem(key)
       if (typeof globalThis !== "undefined" && (globalThis as any).AsyncStorage) {
         return (globalThis as any).AsyncStorage.getItem(key);
       }
-      // Web / Jest fallback
       return (typeof localStorage !== "undefined" ? localStorage.getItem(key) : null);
     } catch {
       return null;
@@ -74,8 +48,6 @@ const storage = {
     } catch {}
   },
 };
-
-// ─── Supabase Auth REST helpers ───────────────────────────────────────────────
 
 interface SupabaseTokenResponse {
   access_token: string;
@@ -143,8 +115,6 @@ async function supabaseRefresh(refresh_token: string): Promise<WolisSession> {
   };
 }
 
-// ─── Auth Store (singleton) ───────────────────────────────────────────────────
-
 type Listener = (state: AuthState) => void;
 
 class AuthStore {
@@ -165,7 +135,6 @@ class AuthStore {
     for (const l of this.listeners) l(this.state);
   }
 
-  /** Called once on app boot — restores persisted session. */
   async initialize(): Promise<void> {
     try {
       const raw = await storage.getItem(STORAGE_KEY);
@@ -176,7 +145,6 @@ class AuthStore {
 
       const session: WolisSession = JSON.parse(raw);
 
-      // Proactively refresh if within 5 minutes of expiry
       const nowSec = Math.floor(Date.now() / 1000);
       if (session.expires_at - nowSec < 300) {
         try {
@@ -212,11 +180,6 @@ class AuthStore {
     this.setState({ status: "unauthenticated", session: null, error: null });
   }
 
-  /**
-   * Proactively refreshes the access token using the stored refresh_token.
-   * Call this before making an important API request if the token might be expired.
-   * Returns true if refresh succeeded, false otherwise (and signs the user out).
-   */
   async refreshSession(): Promise<boolean> {
     const session = this.state.session;
     if (!session?.refresh_token) {
@@ -244,20 +207,15 @@ class AuthStore {
   }
 }
 
-// Singleton — one store for the whole app lifetime
 const authStore = new AuthStore();
 
-/** Must be called once in your app's root component (e.g. App.tsx or WolisNavigator). */
 export function initializeAuth(): Promise<void> {
   return authStore.initialize();
 }
 
-// ─── React hook ───────────────────────────────────────────────────────────────
-
 export interface UseAuthResult extends AuthState {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  /** Refresh the access token. Returns true on success, false if session ended. */
   refreshSession: () => Promise<boolean>;
 }
 
@@ -265,7 +223,6 @@ export function useAuth(): UseAuthResult {
   const [state, setState] = useState<AuthState>(authStore.getState());
 
   useEffect(() => {
-    // Re-sync in case store was updated before mount
     setState(authStore.getState());
     return authStore.subscribe(setState);
   }, []);

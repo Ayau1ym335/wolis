@@ -68,7 +68,6 @@ class MeasurementService:
         self,
         user_id: uuid.UUID,
     ) -> list[MeasurementHistoryItem]:
-        """Return all sessions for this user, newest first, with denormalised risk status."""
         sessions = self._measurement_repository.get_by_user(user_id)
         items: list[MeasurementHistoryItem] = []
 
@@ -76,7 +75,6 @@ class MeasurementService:
             overall_status = None
             overall_risk_score = None
 
-            # Attach assessment summary if available
             if self._assessment_repository:
                 assessment = self._assessment_repository.get_by_session_id(session.id)
                 if assessment:
@@ -105,7 +103,6 @@ class MeasurementService:
         session_id: uuid.UUID,
         user_id: uuid.UUID,
     ) -> MeasurementResultResponse:
-        """Return full result for a session.  Raises 404 if not found or not owned by user."""
         session = self._measurement_repository.get_by_id(session_id)
         if not session or session.user_id != user_id:
             raise HTTPException(
@@ -167,9 +164,6 @@ class MeasurementService:
                             }
                             for sm in sw.materials
                         ]
-                        # required_changes may come back as a JSON string from
-                        # PostgreSQL (same behaviour as parameter_flags / key_concerns
-                        # in assessment_repository). Deserialise defensively.
                         required_changes = sw.solution.required_changes or []
                         if isinstance(required_changes, str):
                             required_changes = json.loads(required_changes)

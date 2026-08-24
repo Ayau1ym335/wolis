@@ -6,7 +6,6 @@ from src.db.models.measurement_session import MeasurementSession
 from src.types.building_context import BuildingContext
 from src.types.sensor_data import SensorData
 
-
 class MeasurementRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -43,7 +42,6 @@ class MeasurementRepository:
 
     @staticmethod
     def to_sensor_data(session: MeasurementSession) -> SensorData:
-        """Convert a MeasurementSession ORM row to the SensorData domain type."""
         return SensorData(
             temperature_c=session.temperature_c,
             humidity_pct=session.humidity_pct,
@@ -56,11 +54,10 @@ class MeasurementRepository:
 
     @staticmethod
     def to_building_context(session: MeasurementSession) -> BuildingContext:
-        """Convert a MeasurementSession ORM row to the BuildingContext domain type."""
         return BuildingContext(
             building_type=session.building_type,
             age_years=session.building_age_years,
             material=session.construction_material,
             area_m2=session.building_area_m2,
             region=session.region,
-        )
+        )

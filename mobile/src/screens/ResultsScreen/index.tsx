@@ -1,17 +1,4 @@
-/**
- * screens/ResultsScreen/index.tsx
- *
- * TASK 34 — Displays the full WolisResult from the backend.
- *
- * Layout (03 / 03):
- *   ① AI Summary block (dark card, key_concerns list)
- *   ② Overall risk score + confidence row
- *   ③ Parameter flags list (per-group RiskBadge)
- *   ④ Three SolutionCards (low_cost / optimal / eco)
- *   ⑤ "New measurement" CTA → resets the whole flow
- *
- * Design: serif heading, mono eyebrows, maroon/blush brand palette.
- */
+
 
 import React, { useState } from "react";
 import {
@@ -29,7 +16,7 @@ import { Colors, Radius, Shadow, Spacing } from "../../theme";
 import { RiskBadge } from "../../components/RiskBadge";
 import { SolutionCard } from "../../components/SolutionCard";
 
-// ─── Risk score gauge ─────────────────────────────────────────────────────────
+
 function RiskScoreBar({ score }: { score: number }) {
   const pct = Math.min(100, Math.max(0, score));
   const color =
@@ -57,19 +44,19 @@ const barStyles = StyleSheet.create({
   label: { fontFamily: "System", fontWeight: "700", fontSize: 17, minWidth: 36, textAlign: "right" },
 });
 
-// ─── Confidence tag ───────────────────────────────────────────────────────────
+
 const CONFIDENCE_LABEL: Record<string, string> = {
   low: "Низкая точность",
   medium: "Средняя точность",
   high: "Высокая точность",
 };
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
+
 export interface ResultsScreenProps {
   result: WolisResult;
   onNewMeasurement?: () => void;
   onBack?: () => void;
-  /** Called with the session_id when user wants to export PDF */
+  
   onExportPdf?: (sessionId: string) => void;
 }
 
@@ -83,7 +70,7 @@ export default function ResultsScreen({ result, onNewMeasurement, onBack, onExpo
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Header ── */}
+        {}
         <View style={styles.header}>
           <TouchableOpacity
             onPress={onBack}
@@ -99,7 +86,7 @@ export default function ResultsScreen({ result, onNewMeasurement, onBack, onExpo
           <View style={{ width: 32 }} />
         </View>
 
-        {/* ── AI Summary card ── */}
+        {}
         <View style={styles.summaryCard}>
           <Text style={styles.summaryEyebrow}>РЕЗЮМЕ</Text>
           <Text style={styles.summaryText}>
@@ -116,7 +103,7 @@ export default function ResultsScreen({ result, onNewMeasurement, onBack, onExpo
           )}
         </View>
 
-        {/* ── Overall risk ── */}
+        {}
         <View style={styles.section}>
           <Text style={styles.sectionEyebrow}>ОБЩИЙ РИСК</Text>
           <RiskScoreBar score={assessment.overall_risk_score} />
@@ -128,7 +115,7 @@ export default function ResultsScreen({ result, onNewMeasurement, onBack, onExpo
           </View>
         </View>
 
-        {/* ── Parameter flags ── */}
+        {}
         {assessment.parameter_flags.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionEyebrow}>ПАРАМЕТРЫ</Text>
@@ -148,7 +135,7 @@ export default function ResultsScreen({ result, onNewMeasurement, onBack, onExpo
           </View>
         )}
 
-        {/* ── Building context summary ── */}
+        {}
         <View style={[styles.section, styles.buildingRow]}>
           <InfoPill label="Тип" value={measurement.building_type} />
           <InfoPill label="Материал" value={measurement.material} />
@@ -157,13 +144,13 @@ export default function ResultsScreen({ result, onNewMeasurement, onBack, onExpo
           <InfoPill label="Возраст" value={`${measurement.age_years} л`} />
         </View>
 
-        {/* ── Solutions heading ── */}
+        {}
         <View style={styles.solutionsHeader}>
           <Text style={styles.solutionsTitle}>Варианты реставрации</Text>
           <Text style={styles.solutionsSub}>Коснитесь карточки, чтобы раскрыть детали.</Text>
         </View>
 
-        {/* ── Solution cards ── */}
+        {}
         {solutions.length > 0 ? (
           solutions.map((sol) => (
             <SolutionCard
@@ -178,7 +165,7 @@ export default function ResultsScreen({ result, onNewMeasurement, onBack, onExpo
           </View>
         )}
 
-        {/* ── CTAs ── */}
+        {}
         <TouchableOpacity
           style={styles.btnPrimary}
           onPress={onNewMeasurement}
@@ -189,7 +176,7 @@ export default function ResultsScreen({ result, onNewMeasurement, onBack, onExpo
           <Text style={styles.btnPrimaryText}>Новый замер</Text>
         </TouchableOpacity>
 
-        {/* Export PDF — only shown when we have a session_id */}
+        {}
         {sessionId && onExportPdf && (
           <TouchableOpacity
             style={[styles.btnGhost, { marginTop: Spacing.sm }]}
@@ -207,7 +194,7 @@ export default function ResultsScreen({ result, onNewMeasurement, onBack, onExpo
   );
 }
 
-// ─── Info pill ────────────────────────────────────────────────────────────────
+
 function InfoPill({ label, value }: { label: string; value: string }) {
   return (
     <View style={pillStyles.pill}>
@@ -231,7 +218,7 @@ const pillStyles = StyleSheet.create({
   value: { fontFamily: "System", fontSize: 11, fontWeight: "700", color: Colors.ink },
 });
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.offwhite },
   scroll: {
@@ -258,7 +245,7 @@ const styles = StyleSheet.create({
   },
   pageTitle: { fontFamily: "System", fontWeight: "700", fontSize: 20, color: Colors.ink },
 
-  // AI Summary card
+  
   summaryCard: {
     backgroundColor: Colors.ink,
     borderRadius: Radius.lg,
@@ -295,7 +282,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // Sections
+  
   section: {
     marginBottom: Spacing.lg,
   },
@@ -318,7 +305,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
-  // Parameter flags
+  
   flagRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -341,14 +328,14 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
-  // Building info pills
+  
   buildingRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Spacing.sm,
   },
 
-  // Solutions
+  
   solutionsHeader: { marginBottom: Spacing.md },
   solutionsTitle: {
     fontFamily: "System",
@@ -372,7 +359,7 @@ const styles = StyleSheet.create({
   },
   noSolutionsText: { fontFamily: "System", fontSize: 13, color: Colors.textSecondary },
 
-  // CTA
+  
   btnPrimary: {
     width: "100%",
     backgroundColor: Colors.maroon,

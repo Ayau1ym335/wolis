@@ -1,17 +1,4 @@
-/**
- * services/apiClient.ts
- *
- * TASK 36 update: added setAuthToken() / getAuthToken() so that
- * useAuth can inject the Supabase JWT once after login, and every
- * subsequent apiRequest() sends it automatically.
- *
- * The token lives in a module-level variable (effectively a singleton
- * for the process lifetime).  This is intentional: React Native runs
- * in a single JS context so there's no multi-tenant concern, and
- * it avoids threading the token through every call site.
- *
- * TASK 29 original contract (apiRequest signature) is unchanged.
- */
+
 
 import { env } from "../config/env";
 import type { ApiErrorBody } from "../types/wolis";
@@ -27,39 +14,32 @@ export class ApiError extends Error {
   }
 }
 
-// ─── Auth token store ─────────────────────────────────────────────────────────
+
 
 let _authToken: string | null = null;
 
-/**
- * Called by useAuth after a successful sign-in or session restore.
- * Pass null to clear (on sign-out).
- */
+
 export function setAuthToken(token: string | null): void {
   _authToken = token;
 }
 
-/** Returns the currently stored token, or null if not authenticated. */
+
 export function getAuthToken(): string | null {
   return _authToken;
 }
 
-// ─── Request helper ───────────────────────────────────────────────────────────
+
 
 interface ApiRequestOptions {
   method: "GET" | "POST" | "PUT" | "DELETE";
   body?: object;
-  /** Override token for this request only (e.g. for auth endpoints). */
+  
   token?: string | null;
-  /**
-   * Request timeout in milliseconds.
-   * Default: 30 000 ms (30 s) for regular requests.
-   * Use AI_TIMEOUT_MS for AI/assess endpoints that may hit a cold-start on Render free tier.
-   */
+  
   timeoutMs?: number;
 }
 
-/** 90-second timeout for AI inference endpoints (Render free-tier cold-start can take 30–60 s). */
+
 export const AI_TIMEOUT_MS = 90_000;
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -104,9 +84,9 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions): P
     } catch {
       console.error("[apiClient] 401 Unauthorized (no JSON body)");
     }
-    // Surface auth errors as a dedicated code so callers (e.g. WolisNavigator)
-    // can redirect to the login screen rather than showing a generic error.
-    // Ensure we pass the actual backend message if it exists (FastAPI puts it in 'detail.message' or similar)
+    
+    
+    
     const backendMessage = errorBody?.detail?.message || errorBody?.message || "unauthorized";
     throw new ApiError(401, "unauthorized", { error: "unauthorized", message: backendMessage });
   }

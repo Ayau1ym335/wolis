@@ -1,19 +1,3 @@
-/**
- * app/WolisNavigator.tsx
- *
- * TASK 33 + TASK 36 update — wraps the full app flow with authentication.
- *
- * Boot sequence:
- *   1. initializeAuth() → restores persisted session / attaches token
- *   2. AuthStatus "loading"       → splash/spinner
- *   3. AuthStatus "unauthenticated" → LoginScreen
- *   4. AuthStatus "authenticated"   → measurement flow
- *
- * Measurement flow (unchanged from TASK 33):
- *   DeviceConnectionScreen → MeasurementScreen
- *     → BuildingContextFormScreen → [submitting] → ResultsScreen
- */
-
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -38,7 +22,6 @@ import BuildingContextFormScreen from "../screens/BuildingContextFormScreen";
 import ResultsScreen from "../screens/ResultsScreen";
 import ReportPreviewScreen from "../screens/ReportPreviewScreen";
 
-// ─── Flow state ───────────────────────────────────────────────────────────────
 type FlowStep =
   | { step: "connect" }
   | { step: "measure" }
@@ -48,7 +31,6 @@ type FlowStep =
   | { step: "report"; result: WolisResult; sessionId: string }
   | { step: "error"; message: string; fromStep: FlowStep };
 
-// ─── Splash / loading screen ──────────────────────────────────────────────────
 function SplashScreen() {
   return (
     <SafeAreaView style={splashStyles.safe}>
@@ -73,7 +55,6 @@ const splashStyles = StyleSheet.create({
   logoOIn: { width: 9, height: 18, backgroundColor: Colors.white, borderRadius: 3 },
 });
 
-// ─── Submitting overlay ───────────────────────────────────────────────────────
 function SubmittingOverlay() {
   return (
     <SafeAreaView style={overlayStyles.safe}>
@@ -99,7 +80,6 @@ const overlayStyles = StyleSheet.create({
   sub: { fontFamily: "System", fontSize: 13, color: Colors.textSecondary, textAlign: "center", lineHeight: 18 },
 });
 
-// ─── Error screen ─────────────────────────────────────────────────────────────
 function ErrorScreen({ message, onRetry, onReset }: { message: string; onRetry: () => void; onReset: () => void }) {
   return (
     <SafeAreaView style={errStyles.safe}>
@@ -131,18 +111,15 @@ const errStyles = StyleSheet.create({
   btnGhostText: { fontFamily: "System", fontWeight: "600", fontSize: 14, color: Colors.ink },
 });
 
-// ─── Main navigator ───────────────────────────────────────────────────────────
 export default function WolisNavigator() {
   const auth = useAuth();
   const [flow, setFlow] = useState<FlowStep>({ step: "connect" });
   const ble = useBleDevice();
 
-  // Initialize auth on first render (restores persisted session)
   useEffect(() => {
     initializeAuth();
   }, []);
 
-  // Reset flow when user logs out
   useEffect(() => {
     if (auth.status === "unauthenticated") {
       ble.disconnect();
@@ -150,7 +127,6 @@ export default function WolisNavigator() {
     }
   }, [auth.status]);
 
-  // ── Submission handler ──────────────────────────────────────────────────
   const handleFormSubmit = useCallback(
     async (context: BuildingContextFormValues, reading: RawSensorPacket) => {
       const fromStep: FlowStep = { step: "form", reading };
@@ -167,14 +143,11 @@ export default function WolisNavigator() {
         const result = await doSubmit();
         setFlow({ step: "results", result });
       } catch (err) {
-        // 401 → токен истёк. Пробуем обновить его и повторить запрос один раз.
         if (err instanceof ApiError && err.status === 401) {
           const refreshed = await auth.refreshSession();
           if (!refreshed) {
-            // refreshSession сам вызвал signOut → навигатор покажет LoginScreen
             return;
           }
-          // Повторяем запрос с новым токеном
           try {
             const result = await doSubmit();
             setFlow({ step: "results", result });
@@ -203,10 +176,8 @@ export default function WolisNavigator() {
     setFlow({ step: "connect" });
   }, [ble]);
 
-  // ── Render ──────────────────────────────────────────────────────────────
   return (
     <>
-      {/* Auth gate */}
       {auth.status === "loading" && <SplashScreen />}
 
       {auth.status === "unauthenticated" || auth.status === "error" ? (
