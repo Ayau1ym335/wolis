@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Platform } from "react-native";
 import { env } from "../../config/env";
 import {
   createMockBleAdapter,
@@ -7,6 +8,7 @@ import {
   type ConnectionStatus,
   type DiscoveredDevice,
 } from "./bleadapter";
+
 
 export type { ConnectionStatus, DiscoveredDevice };
 
@@ -180,11 +182,25 @@ export class BleDeviceController {
   }
 }
 
+// Singleton BleManager — created once so we don't leak native resources across re-renders.
+// Lazily required so that web bundling doesn't crash (native module guard).
+let _bleManager: InstanceType<typeof import("react-native-ble-plx").BleManager> | null = null;
+
+function getRealBleManager() {
+  if (!_bleManager) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { BleManager } = require("react-native-ble-plx");
+    _bleManager = new BleManager();
+  }
+  return _bleManager!;
+}
+
 function buildAdapter(): BleAdapter {
-  if (env.USE_MOCK_BLE) {
+  if (env.USE_MOCK_BLE || Platform.OS === "web") {
     return createMockBleAdapter({ intervalMs: 1200 });
   }
-  throw new Error("Real BLE not configured. Set WOLIS_USE_MOCK_BLE=true or provide a BleManager.");
+  // Real BLE via react-native-ble-plx (requires expo-dev-client build)
+  return createRealBleAdapter(getRealBleManager());
 }
 
 export function useBleDevice() {

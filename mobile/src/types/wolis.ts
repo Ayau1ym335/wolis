@@ -13,6 +13,8 @@ export interface RawSensorPacket {
   tilt_angle_deg: number;
   vibration_magnitude: number;
   shock_detected: boolean;
+  /** Present in real hardware packets. True when all sensors initialised correctly. */
+  all_sensors_ok?: boolean;
 }
 
 export interface BuildingContextFormValues {

@@ -1,6 +1,8 @@
 import type { RawSensorPacket } from "../../types/wolis";
-export const WOLIS_SERVICE_UUID = "0000a000-0000-1000-8000-00805f9b34fb";
-export const SENSOR_CHARACTERISTIC_UUID = "0000a001-0000-1000-8000-00805f9b34fb";
+
+// Must match the UUIDs defined in hardware/ble_service.cpp
+export const WOLIS_SERVICE_UUID = "6f1e2a10-0001-4a5c-9c2e-2f6a1b7d0e01";
+export const SENSOR_CHARACTERISTIC_UUID = "6f1e2a10-0002-4a5c-9c2e-2f6a1b7d0e01";
 export const DEVICE_NAME_PREFIX = "Wolis-SensorBox";
  
 export type ConnectionStatus = "disconnected" | "scanning" | "connecting" | "connected" | "error";
@@ -75,6 +77,8 @@ export function parsePacket(base64Value: string): RawSensorPacket {
     tilt_angle_deg: obj.tilt_angle_deg as number,
     vibration_magnitude: obj.vibration_magnitude as number,
     shock_detected: obj.shock_detected as boolean,
+    // Hardware also sends all_sensors_ok — carry it through if present
+    ...(typeof obj.all_sensors_ok === "boolean" && { all_sensors_ok: obj.all_sensors_ok }),
   };
 }
  

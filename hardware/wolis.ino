@@ -2,8 +2,8 @@
 #include <Wire.h>
 
 #include "sensor_reading.h"
-#include "sensors/sensors.h"
-#include "ble/ble_service.h"
+#include "sensors.h"
+#include "ble_service.h"
 
 namespace {
     constexpr uint8_t SW420_PIN = 25;
