@@ -8,6 +8,7 @@ import {
   type ConnectionStatus,
   type DiscoveredDevice,
 } from "./bleadapter";
+import { createWebBleAdapter } from "./webBleAdapter";
 
 
 export type { ConnectionStatus, DiscoveredDevice };
@@ -196,22 +197,26 @@ function getRealBleManager() {
 }
 
 function buildAdapter(): BleAdapter {
-  if (env.USE_MOCK_BLE || Platform.OS === "web") {
+  if (env.USE_MOCK_BLE) {
     return createMockBleAdapter({ intervalMs: 1200 });
+  }
+  // Web Bluetooth API — real ESP32 data in Chrome/Edge on laptop
+  if (Platform.OS === "web") {
+    return createWebBleAdapter();
   }
   // Real BLE via react-native-ble-plx (requires expo-dev-client build)
   return createRealBleAdapter(getRealBleManager());
 }
 
-export function useBleDevice() {
-  const controllerRef = useRef<BleDeviceController | null>(null);
+let globalController: BleDeviceController | null = null;
 
-  if (!controllerRef.current) {
+export function useBleDevice() {
+  if (!globalController) {
     const adapter = buildAdapter();
-    controllerRef.current = new BleDeviceController(adapter);
+    globalController = new BleDeviceController(adapter);
   }
 
-  const controller = controllerRef.current;
+  const controller = globalController;
 
   const [state, setState] = useState<BleDeviceState>(controller.getState());
 

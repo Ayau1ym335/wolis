@@ -94,7 +94,13 @@ const TYPE_META: Record<SolutionType, { eyebrow: string; defaultTitle: string; r
 };
 
 function formatMoney(amount: number, currency: string): string {
-  return `${(amount / 1_000_000).toFixed(1)} млн ${currency}`;
+  if (amount >= 1_000_000) {
+    return `${(amount / 1_000_000).toFixed(2)} млн ${currency}`;
+  }
+  if (amount >= 1_000) {
+    return `${(amount / 1_000).toFixed(1)} тыс. ${currency}`;
+  }
+  return `${amount.toFixed(0)} ${currency}`;
 }
 export interface SolutionCardProps {
   solution: SolutionSummary;

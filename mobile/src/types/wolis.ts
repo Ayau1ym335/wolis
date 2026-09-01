@@ -31,6 +31,8 @@ export interface CreateMeasurementPayload extends RawSensorPacket, BuildingConte
 
 export interface CreateMeasurementResponse {
   session_id: string;
+  status: string;
+  created_at: string;
 }
 
 export interface ParameterFlag {
@@ -71,18 +73,18 @@ export interface SolutionSummary {
 
 export interface MeasurementSummary {
   session_id: string;
-  temperature_c: number;
-  humidity_pct: number;
-  pressure_hpa: number;
-  illuminance_lux: number;
-  tilt_angle_deg: number;
-  vibration_magnitude: number;
-  shock_detected: boolean;
   building_type: string;
-  age_years: number;
-  material: string;
-  area_m2: number;
+  /** Backend field: building_age_years */
+  building_age_years: number;
+  /** Backend field: construction_material */
+  construction_material: string;
+  /** Backend field: building_area_m2 */
+  building_area_m2: number;
   region: string;
+  status: string;
+  created_at: string;
+  overall_status: string | null;
+  overall_risk_score: number | null;
 }
 
 export interface WolisResult {

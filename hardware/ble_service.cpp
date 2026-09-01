@@ -11,7 +11,7 @@ namespace {
     constexpr char SERVICE_UUID[]      = "6f1e2a10-0001-4a5c-9c2e-2f6a1b7d0e01";
     constexpr char CHARACTERISTIC_UUID[] = "6f1e2a10-0002-4a5c-9c2e-2f6a1b7d0e01";
 
-    constexpr uint16_t DESIRED_MTU = 185;
+    constexpr uint16_t DESIRED_MTU = 256;
 
     BLEServer *server = nullptr;
     BLECharacteristic *readingCharacteristic = nullptr;
@@ -59,7 +59,7 @@ void notifyReading(const SensorReading &reading) {
     if (!connected || readingCharacteristic == nullptr) {
         return;
     }
-    char json[192];
+    char json[256];
     int written = snprintf(json, sizeof(json),
         "{\"temperature_c\":%.2f,\"humidity_pct\":%.2f,\"pressure_hpa\":%.2f,"
         "\"illuminance_lux\":%.2f,\"tilt_angle_deg\":%.2f,"

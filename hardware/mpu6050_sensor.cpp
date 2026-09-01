@@ -13,8 +13,11 @@ namespace {
 
     float computeTiltAngleDeg(float ax, float ay, float az) {
         float horizontalMagnitude = sqrtf(ax * ax + ay * ay);
-        float angleRad = atan2f(horizontalMagnitude, az);
-        return angleRad * 180.0f / PI;
+        float angleRad = atan2f(horizontalMagnitude, fabsf(az));
+        float deg = angleRad * 180.0f / PI;
+        // Clamp to [0, 90]: angle from vertical axis, regardless of sensor orientation
+        if (deg > 90.0f) deg = 90.0f;
+        return deg;
     }
     bool readAveraged(float &tiltAngleDeg, float &vibrationMagnitude) {
         float sumAx = 0, sumAy = 0, sumAz = 0;
@@ -59,7 +62,7 @@ namespace {
 
     bool isPhysicallyPlausible(float tiltAngleDeg, float vibrationMagnitude) {
         if (isnan(tiltAngleDeg) || isnan(vibrationMagnitude)) return false;
-        if (tiltAngleDeg < 0.0f || tiltAngleDeg > 180.0f) return false;
+        if (tiltAngleDeg < 0.0f || tiltAngleDeg > 90.0f) return false;
         if (vibrationMagnitude < 0.0f || vibrationMagnitude > (GRAVITY * 2.0f)) return false;
         return true;
     }

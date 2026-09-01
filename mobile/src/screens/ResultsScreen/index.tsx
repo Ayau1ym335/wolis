@@ -138,10 +138,10 @@ export default function ResultsScreen({ result, onNewMeasurement, onBack, onExpo
         {}
         <View style={[styles.section, styles.buildingRow]}>
           <InfoPill label="Тип" value={measurement.building_type} />
-          <InfoPill label="Материал" value={measurement.material} />
+          <InfoPill label="Материал" value={measurement.construction_material} />
           <InfoPill label="Регион" value={measurement.region} />
-          <InfoPill label="Площадь" value={`${measurement.area_m2} м²`} />
-          <InfoPill label="Возраст" value={`${measurement.age_years} л`} />
+          <InfoPill label="Площадь" value={`${measurement.building_area_m2} м²`} />
+          <InfoPill label="Возраст" value={`${measurement.building_age_years} л`} />
         </View>
 
         {}

@@ -70,6 +70,9 @@ def split_dataset(df: pd.DataFrame):
     val_df, test_df = train_test_split(
         temp_df, test_size=0.50, random_state=RANDOM_STATE, stratify=temp_df["overall_status"]
     )
+    train_df = train_df.reset_index(drop=True)
+    val_df = val_df.reset_index(drop=True)
+    test_df = test_df.reset_index(drop=True)
     return train_df, val_df, test_df
 
 
@@ -79,7 +82,7 @@ def train_group_model(
     encoded_train_X: np.ndarray,
 ) -> RandomForestClassifier:
     target_col = TARGET_COLUMNS[group_name]
-    y_train = train_df[target_col]
+    y_train = train_df[target_col].to_numpy()
 
     model = RandomForestClassifier(
         n_estimators=200,
