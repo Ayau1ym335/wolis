@@ -64,6 +64,8 @@ class SolutionResultItem(BaseModel):
     estimated_cost_currency: str
     estimated_savings_money: float
     estimated_savings_resources_description: str
+    baseline_cost_amount: float = 0.0
+    baseline_cost_currency: str = "USD"
     material_line_items: list[dict[str, Any]] = []
 
 

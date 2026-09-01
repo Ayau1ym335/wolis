@@ -6,6 +6,7 @@ from src.services.solution_service import (
     CONCERN_TO_MATERIALS,
     MaterialCandidate,
 )
+from src.types.assessment import STATUS_RANK, StatusLevel
 
 DEFAULT_CURRENCY = "USD"
 DEFAULT_UNIT_PRICE_BY_UNIT = {
@@ -13,7 +14,13 @@ DEFAULT_UNIT_PRICE_BY_UNIT = {
     "m2": 18.0,
     "unit": 300.0,
 }
-BASELINE_QUANTITY_MULTIPLIER = 1.15
+
+# Dynamic baseline multiplier:
+# baseline = optimal_cost × (1.1 + 0.05 × count_of_critical_flags)
+# Represents "full replacement" volume — scales with severity of findings.
+_BASELINE_BASE = 1.10
+_BASELINE_PER_CRITICAL = 0.05
+_BASELINE_MAX = 1.35
 
 
 @dataclass
@@ -50,6 +57,7 @@ class SolutionWithCost:
     material_line_items: list[MaterialLineItem] = field(default_factory=list)
     estimated_cost: EstimatedCost = None
     estimated_savings: EstimatedSavings = None
+    baseline_cost: EstimatedCost = None
 
 
 class CostCalculationService:
@@ -62,8 +70,16 @@ class CostCalculationService:
         region: str,
         assessment_key_concerns: list[str],
         building_area_m2: float,
+        parameter_flags: list | None = None,
     ) -> list[SolutionWithCost]:
-        baseline_cost = self._calculate_baseline_cost(assessment_key_concerns, building_area_m2)
+        critical_count = self._count_critical_flags(parameter_flags or [])
+        baseline_multiplier = min(
+            _BASELINE_BASE + _BASELINE_PER_CRITICAL * critical_count,
+            _BASELINE_MAX,
+        )
+        baseline_cost = self._calculate_baseline_cost(
+            assessment_key_concerns, building_area_m2, baseline_multiplier
+        )
 
         priced_solutions = []
         for draft in solution_drafts:
@@ -92,10 +108,22 @@ class CostCalculationService:
                         money=savings_money,
                         resources_description=resources_description,
                     ),
+                    baseline_cost=EstimatedCost(amount=baseline_cost),
                 )
             )
 
         return priced_solutions
+
+    @staticmethod
+    def _count_critical_flags(parameter_flags: list) -> int:
+        """Count flags with CRITICAL status to scale the baseline multiplier."""
+        count = 0
+        for flag in parameter_flags:
+            # flag can be a ParameterFlag object or a plain dict (from DB JSON)
+            status = flag.status if hasattr(flag, "status") else flag.get("status", "normal")
+            if status == StatusLevel.CRITICAL or status == "critical":
+                count += 1
+        return count
 
     def _price_material_requirements(self, material_requirements) -> list[MaterialLineItem]:
         all_candidates: dict[str, MaterialCandidate] = {
@@ -109,7 +137,7 @@ class CostCalculationService:
             material_ref = self._materials_repository.get_by_name(req.material_name)
 
             if material_ref is not None:
-                unit_price = material_ref.unit_price
+                unit_price = float(material_ref.unit_price)
                 is_estimated = False
                 material_id = material_ref.id
             else:
@@ -135,7 +163,15 @@ class CostCalculationService:
         self,
         key_concerns: list[str],
         building_area_m2: float,
+        multiplier: float = _BASELINE_BASE,
     ) -> float:
+        """Full-replacement baseline: every concern at full volume × dynamic multiplier.
+
+        multiplier = 1.1 + 0.05 × critical_flag_count (capped at 1.35).
+        This makes the baseline grow with problem severity, which is
+        intuitively correct: more critical issues require a proportionally
+        larger full-replacement effort.
+        """
         baseline_total = 0.0
 
         for concern in key_concerns:
@@ -147,10 +183,10 @@ class CostCalculationService:
                     if candidate.per_area
                     else candidate.base_quantity_per_area
                 )
-                quantity *= BASELINE_QUANTITY_MULTIPLIER
+                quantity *= multiplier
 
                 material_ref = self._materials_repository.get_by_name(candidate.material_name)
-                unit_price = (
+                unit_price = float(
                     material_ref.unit_price if material_ref is not None
                     else DEFAULT_UNIT_PRICE_BY_UNIT.get(candidate.unit, DEFAULT_UNIT_PRICE_BY_UNIT["unit"])
                 )

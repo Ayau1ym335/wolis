@@ -177,6 +177,8 @@ class MeasurementService:
                                 estimated_savings_resources_description=(
                                     sw.solution.savings_resources_description or ""
                                 ),
+                                baseline_cost_amount=float(sw.solution.baseline_cost_amount or 0.0),
+                                baseline_cost_currency=sw.solution.baseline_cost_currency or "USD",
                                 material_line_items=line_items,
                             )
                         )

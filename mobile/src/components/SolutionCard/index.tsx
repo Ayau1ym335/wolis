@@ -183,6 +183,17 @@ export function SolutionCard({ solution, defaultExpanded = false }: SolutionCard
             </View>
           )}
 
+          {(solution.baseline_cost_amount ?? 0) > 0 && (
+            <View style={[styles.baselineRow, { borderTopColor: theme.dividerColor }]}>
+              <Text style={[styles.baselineLabel, { color: theme.lineKeyColor }]}>
+                Базовая стоимость (замена всего):
+              </Text>
+              <Text style={[styles.baselineValue, { color: theme.lineValColor }]}>
+                {formatMoney(solution.baseline_cost_amount!, solution.baseline_cost_currency ?? solution.estimated_cost_currency)}
+              </Text>
+            </View>
+          )}
+
           {hasLineItems && (
             <>
               <Text style={[styles.detSectionLabel, { color: theme.eyebrowColor, marginTop: Spacing.md }]}>
@@ -356,6 +367,26 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 13,
     marginLeft: Spacing.md,
+  },
+  baselineRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: Spacing.sm,
+    marginTop: Spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  baselineLabel: {
+    fontFamily: "System",
+    fontSize: 11,
+    flex: 1,
+    opacity: 0.75,
+  },
+  baselineValue: {
+    fontFamily: "System",
+    fontWeight: "700",
+    fontSize: 12,
+    marginLeft: Spacing.sm,
   },
   chevron: {
     position: "absolute",

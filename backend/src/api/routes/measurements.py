@@ -54,6 +54,7 @@ async def assess_measurement(
         building_context.region,
         assessment_result.key_concerns,
         building_context.area_m2,
+        assessment_result.parameter_flags,
     )
     for sol in priced_solutions:
         sol_id = solution_repository.create({
@@ -64,6 +65,8 @@ async def assess_measurement(
             "cost_currency": sol.estimated_cost.currency,
             "savings_money": sol.estimated_savings.money,
             "savings_resources_description": sol.estimated_savings.resources_description,
+            "baseline_cost_amount": sol.baseline_cost.amount if sol.baseline_cost else None,
+            "baseline_cost_currency": sol.baseline_cost.currency if sol.baseline_cost else None,
         })
         for mat in sol.material_line_items:
             if mat.material_id is not None:

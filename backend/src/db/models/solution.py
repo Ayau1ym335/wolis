@@ -25,6 +25,8 @@ class Solution(Base, TimestampMixin):
     savings_resources_description: Mapped[str] = mapped_column(
         String(500), nullable=False
     )
+    baseline_cost_amount: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    baseline_cost_currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
     assessment: Mapped["Assessment"] = relationship(back_populates="solutions")
     materials: Mapped[list["SolutionMaterial"]] = relationship(
         back_populates="solution"

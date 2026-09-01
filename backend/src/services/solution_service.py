@@ -28,27 +28,27 @@ class SolutionDraft:
 
 CONCERN_TO_MATERIALS: dict[str, list[MaterialCandidate]] = {
     "high_tilt": [
-        MaterialCandidate("foundation_reinforcement_steel", 0.5, "kg", per_area=True),
-        MaterialCandidate("structural_underpinning", 0.1, "unit", per_area=True, reuse_oriented=True),
+        MaterialCandidate("Арматура композитная 8 мм", 0.5, "m", per_area=True),
+        MaterialCandidate("Сетка кладочная 1000x2000 мм, ячейка 150x150", 0.1, "m2", per_area=True, reuse_oriented=True),
     ],
     "structural_vibration": [
-        MaterialCandidate("vibration_damping_material", 0.3, "kg", per_area=True),
+        MaterialCandidate("Цемент М450, Семей, 50 кг", 0.3, "kg", per_area=True),
     ],
     "shock_event_detected": [
-        MaterialCandidate("structural_inspection_service", 1.0, "unit", per_area=False),
+        MaterialCandidate("Штукатурка Rotband гипсовая 30 кг, Knauf", 1.0, "kg", per_area=False),
     ],
     "moisture_risk": [
-        MaterialCandidate("waterproofing_membrane", 1.0, "m2", per_area=True),
-        MaterialCandidate("dehumidification_treatment", 0.2, "unit", per_area=True),
+        MaterialCandidate("Гидроизоляционная масса CR65 цементная 25 кг, Ceresit", 1.0, "m2", per_area=True),
+        MaterialCandidate("Грунтовка CT7 универсальная 10 л, Ceresit", 0.2, "l", per_area=True),
     ],
     "extreme_temperature": [
-        MaterialCandidate("thermal_insulation", 1.0, "m2", per_area=True),
+        MaterialCandidate("Утеплитель РОКЛАЙТ 50 мм, Технониколь", 1.0, "m2", per_area=True),
     ],
     "extreme_pressure": [
     ],
     "insufficient_natural_light": [
-        MaterialCandidate("led_lighting_upgrade", 0.05, "unit", per_area=True),
-        MaterialCandidate("skylight_installation", 0.01, "unit", per_area=True, reuse_oriented=False),
+        MaterialCandidate("Профиль направляющий Knauf 27x28x3000 мм", 0.05, "unit", per_area=True),
+        MaterialCandidate("Плита OSB-3 12 мм, 1250x2500", 0.01, "m2", per_area=True, reuse_oriented=False),
     ],
 }
 

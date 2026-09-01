@@ -51,6 +51,39 @@ const CONFIDENCE_LABEL: Record<string, string> = {
   high: "Высокая точность",
 };
 
+const GROUP_LABELS: Record<string, string> = {
+  structural: "Конструкция",
+  climate:    "Климат",
+  lighting:   "Освещение",
+};
+
+const SENSOR_LABELS: Record<string, string> = {
+  tilt_angle_deg:       "Угол наклона",
+  vibration_magnitude:  "Вибрация",
+  shock_detected:       "Ударная нагрузка",
+  humidity_pct:         "Влажность",
+  temperature_c:        "Температура",
+  pressure_hpa:         "Давление",
+  illuminance_lux:      "Освещённость",
+};
+
+const CONCERN_LABELS: Record<string, string> = {
+  high_tilt:                  "Критический наклон конструкции",
+  structural_vibration:       "Повышенная вибрация несущих элементов",
+  shock_event_detected:       "Зафиксирована ударная нагрузка",
+  moisture_risk:              "Риск переувлажнения",
+  extreme_temperature:        "Экстремальный температурный режим",
+  extreme_pressure:           "Аномальное атмосферное давление",
+  insufficient_natural_light: "Недостаточное естественное освещение",
+};
+
+function translateConcerns(concerns: string[]): string {
+  if (concerns.length === 0) return "";
+  return concerns
+    .map((c) => CONCERN_LABELS[c] ?? c)
+    .join(". ") + ".";
+}
+
 
 export interface ResultsScreenProps {
   result: WolisResult;
@@ -91,7 +124,7 @@ export default function ResultsScreen({ result, onNewMeasurement, onBack, onExpo
           <Text style={styles.summaryEyebrow}>РЕЗЮМЕ</Text>
           <Text style={styles.summaryText}>
             {assessment.key_concerns.length > 0
-              ? assessment.key_concerns.join(". ") + "."
+              ? translateConcerns(assessment.key_concerns)
               : "Объект в целом устойчив. Конкретные параметры — ниже."}
           </Text>
           {assessment.ml_model_used && (
@@ -122,10 +155,19 @@ export default function ResultsScreen({ result, onNewMeasurement, onBack, onExpo
             {assessment.parameter_flags.map((flag, i) => (
               <View key={i} style={styles.flagRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.flagGroup}>{flag.group}</Text>
+                  <View style={styles.flagGroupRow}>
+                    <Text style={styles.flagGroup}>
+                      {GROUP_LABELS[flag.group] ?? flag.group}
+                    </Text>
+                    <Text style={styles.flagConfidence}>
+                      {(flag.confidence * 100).toFixed(0)}%
+                    </Text>
+                  </View>
                   {flag.contributing_sensors.length > 0 && (
                     <Text style={styles.flagSensors}>
-                      {flag.contributing_sensors.join(", ")}
+                      {flag.contributing_sensors
+                        .map((s) => SENSOR_LABELS[s] ?? s)
+                        .join(", ")}
                     </Text>
                   )}
                 </View>
@@ -315,12 +357,23 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
     gap: Spacing.md,
   },
+  flagGroupRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: 2,
+  },
   flagGroup: {
     fontFamily: "System",
     fontWeight: "600",
     fontSize: 13,
     color: Colors.ink,
-    marginBottom: 2,
+  },
+  flagConfidence: {
+    fontFamily: "System",
+    fontSize: 10,
+    color: Colors.textSecondary,
+    fontWeight: "400",
   },
   flagSensors: {
     fontFamily: "System",

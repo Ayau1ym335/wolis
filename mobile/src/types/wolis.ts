@@ -69,6 +69,8 @@ export interface SolutionSummary {
   estimated_cost_currency: string;
   estimated_savings_money: number;
   estimated_savings_resources_description: string;
+  baseline_cost_amount?: number;
+  baseline_cost_currency?: string;
 }
 
 export interface MeasurementSummary {
