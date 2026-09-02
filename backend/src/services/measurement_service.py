@@ -159,7 +159,7 @@ class MeasurementService:
                                 "quantity": sm.quantity,
                                 "unit": sm.material.unit,
                                 "unit_price_at_calculation": sm.unit_price_at_calculation,
-                                "is_estimated_price": sm.material.is_estimated_price,
+                                "is_estimated_price": False,
                                 "line_cost": sm.quantity * sm.unit_price_at_calculation,
                             }
                             for sm in sw.materials
