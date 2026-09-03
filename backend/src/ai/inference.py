@@ -10,6 +10,10 @@ from src.ai.concerns import (
     RISK_SCORE_WEIGHTS,
     derive_key_concerns,
 )
+from src.ai.explainability import (
+    extract_feature_weights,
+    build_threshold_description,
+)
 from src.ai.preprocessing import encode_features, load_encoder
 from src.types.assessment import (
     AssessmentResult,
@@ -74,6 +78,17 @@ def predict(
 ) -> AssessmentResult:
     encoded_X = encode_features(sensor_data, building_context, models.encoder)
 
+    encoded_feature_names: list[str] = []
+    try:
+        import json as _json
+        meta_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "model", "metadata.json"
+        )
+        with open(meta_path) as _f:
+            encoded_feature_names = _json.load(_f).get("encoded_feature_names", [])
+    except Exception:
+        pass
+
     group_models = {
         "structural": models.structural_model,
         "climate": models.climate_model,
@@ -113,6 +128,12 @@ def predict(
             status=group_statuses[group],
             confidence=round(group_confidences[group], 3),
             contributing_sensors=GROUP_CONTRIBUTING_SENSORS[group],
+            feature_weights=extract_feature_weights(
+                group_models[group], group, encoded_feature_names
+            ),
+            threshold_description=build_threshold_description(
+                group, sensor_data, building_context
+            ),
         )
         for group in ("structural", "climate", "lighting")
     ]

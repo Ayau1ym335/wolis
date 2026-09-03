@@ -174,50 +174,89 @@ export function SolutionCard({ solution, defaultExpanded = false }: SolutionCard
             </View>
           )}
 
+          {/* Savings formula — explicit equation */}
+          {(solution.baseline_cost_amount ?? 0) > 0 && (() => {
+            const baseline = solution.baseline_cost_amount!;
+            const scenario = solution.estimated_cost_amount;
+            const savings  = baseline - scenario;
+            const pct      = baseline > 0 ? Math.round((savings / baseline) * 100) : 0;
+            const cur       = solution.estimated_cost_currency;
+            return (
+              <View style={[styles.savingsFormula, { backgroundColor: theme.changesBg }]}>
+                <Text style={[styles.savingsFormulaLabel, { color: theme.eyebrowColor }]}>
+                  КАК СЧИТАЛАСЬ ЭКОНОМИЯ
+                </Text>
+                <Text style={[styles.savingsFormulaText, { color: theme.changesText }]}>
+                  Полная замена — {formatMoney(baseline, cur)}
+                </Text>
+                <Text style={[styles.savingsFormulaText, { color: theme.changesText }]}>
+                  − Данный сценарий — {formatMoney(scenario, cur)}
+                </Text>
+                <Text style={[styles.savingsFormulaResult, { color: theme.priceColor }]}>
+                  = Экономия {formatMoney(savings, cur)} ({pct}%)
+                </Text>
+              </View>
+            );
+          })()}
+
+          {hasLineItems && (
+            <>
+              <Text style={[styles.detSectionLabel, { color: theme.eyebrowColor, marginTop: Spacing.md }]}>
+                РАБОТЫ И МАТЕРИАЛЫ
+              </Text>
+
+              {/* Table header */}
+              <View style={[styles.tableHeader, { borderBottomColor: theme.dividerColor }]}>
+                <Text style={[styles.tableHeaderCell, { color: theme.eyebrowColor, flex: 3 }]}>Работа / Материал</Text>
+                <Text style={[styles.tableHeaderCell, { color: theme.eyebrowColor, flex: 1, textAlign: "right" }]}>Объём</Text>
+                <Text style={[styles.tableHeaderCell, { color: theme.eyebrowColor, flex: 1, textAlign: "right" }]}>Итого</Text>
+              </View>
+
+              {solution.material_line_items.map((item, i) => (
+                <View key={i} style={[styles.tableRow, { borderBottomColor: theme.dividerColor }]}>
+                  <View style={{ flex: 3 }}>
+                    {item.work_description ? (
+                      <Text style={[styles.tableWorkDesc, { color: theme.eyebrowColor }]} numberOfLines={1}>
+                        {item.work_description}
+                      </Text>
+                    ) : null}
+                    <Text style={[styles.lineItemName, { color: theme.lineValColor }]} numberOfLines={2}>
+                      {item.material_name}
+                    </Text>
+                    <Text style={[styles.lineItemQty, { color: theme.lineKeyColor }]}>
+                      {item.unit_price_at_calculation.toLocaleString()} {item.unit}⁻¹
+                    </Text>
+                  </View>
+                  <Text style={[styles.tableQtyCell, { color: theme.lineKeyColor }]}>
+                    {item.quantity} {item.unit}
+                  </Text>
+                  <Text style={[styles.lineItemCost, { color: theme.priceColor, flex: 1, textAlign: "right" }]}>
+                    {item.line_cost.toLocaleString()}
+                  </Text>
+                </View>
+              ))}
+
+              {/* Total row */}
+              <View style={[styles.tableTotalRow, { borderTopColor: theme.dividerColor }]}>
+                <Text style={[styles.tableTotalLabel, { color: theme.lineKeyColor }]}>ИТОГО</Text>
+                <Text style={[styles.tableTotalValue, { color: theme.priceColor }]}>
+                  {formatMoney(solution.estimated_cost_amount, solution.estimated_cost_currency)}
+                </Text>
+              </View>
+            </>
+          )}
+
           {solution.estimated_savings_resources_description.trim().length > 0 && (
-            <View style={[styles.resourcesBox, { backgroundColor: theme.changesBg }]}>
-              <Text style={[styles.resourcesLabel, { color: theme.eyebrowColor }]}>Ресурсы</Text>
+            <View style={[styles.resourcesBox, { backgroundColor: theme.changesBg, marginTop: Spacing.sm }]}>
+              <Text style={[styles.resourcesLabel, { color: theme.eyebrowColor }]}>Ресурсный эффект</Text>
               <Text style={[styles.resourcesText, { color: theme.changesText }]}>
                 {solution.estimated_savings_resources_description}
               </Text>
             </View>
           )}
-
-          {(solution.baseline_cost_amount ?? 0) > 0 && (
-            <View style={[styles.baselineRow, { borderTopColor: theme.dividerColor }]}>
-              <Text style={[styles.baselineLabel, { color: theme.lineKeyColor }]}>
-                Базовая стоимость (замена всего):
-              </Text>
-              <Text style={[styles.baselineValue, { color: theme.lineValColor }]}>
-                {formatMoney(solution.baseline_cost_amount!, solution.baseline_cost_currency ?? solution.estimated_cost_currency)}
-              </Text>
-            </View>
-          )}
-
-          {hasLineItems && (
-            <>
-              <Text style={[styles.detSectionLabel, { color: theme.eyebrowColor, marginTop: Spacing.md }]}>
-                Материалы
-              </Text>
-              {solution.material_line_items.map((item, i) => (
-                <View key={i} style={[styles.lineItem, { borderBottomColor: theme.dividerColor }]}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.lineItemName, { color: theme.lineValColor }]} numberOfLines={1}>
-                      {item.material_name}
-                    </Text>
-                    <Text style={[styles.lineItemQty, { color: theme.lineKeyColor }]}>
-                      {item.quantity} {item.unit}
-                    </Text>
-                  </View>
-                  <Text style={[styles.lineItemCost, { color: theme.priceColor }]}>
-                    {item.line_cost.toLocaleString()} {solution.estimated_cost_currency}
-                  </Text>
-                </View>
-              ))}
-            </>
-          )}
         </View>
       )}
+
 
       <Text style={[styles.chevron, { color: theme.eyebrowColor }]}>
         {expanded ? "▲" : "▼"}
@@ -387,6 +426,81 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 12,
     marginLeft: Spacing.sm,
+  },
+  savingsFormula: {
+    borderRadius: Radius.sm,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    gap: 2,
+  },
+  savingsFormulaLabel: {
+    fontFamily: "System",
+    fontSize: 8,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  savingsFormulaText: {
+    fontFamily: "System",
+    fontSize: 11.5,
+  },
+  savingsFormulaResult: {
+    fontFamily: "System",
+    fontWeight: "700",
+    fontSize: 13,
+    marginTop: 3,
+  },
+  tableHeader: {
+    flexDirection: "row",
+    paddingBottom: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    marginBottom: 4,
+  },
+  tableHeaderCell: {
+    fontFamily: "System",
+    fontSize: 8.5,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+  },
+  tableRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingVertical: 7,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 6,
+  },
+  tableWorkDesc: {
+    fontFamily: "System",
+    fontSize: 8.5,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+    marginBottom: 1,
+  },
+  tableQtyCell: {
+    flex: 1,
+    fontFamily: "System",
+    fontSize: 11,
+    textAlign: "right",
+    paddingTop: 2,
+  },
+  tableTotalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: Spacing.sm,
+    marginTop: 2,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  tableTotalLabel: {
+    fontFamily: "System",
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+  },
+  tableTotalValue: {
+    fontFamily: "System",
+    fontWeight: "800",
+    fontSize: 14,
   },
   chevron: {
     position: "absolute",

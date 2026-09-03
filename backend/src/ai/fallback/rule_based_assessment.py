@@ -10,6 +10,10 @@ from src.ai.concerns import (
     RISK_SCORE_WEIGHTS,
     derive_key_concerns,
 )
+from src.ai.explainability import (
+    build_threshold_description,
+    _rule_based_uniform_weights,
+)
 from src.types.assessment import (
     AssessmentResult,
     BuildingContext,
@@ -67,6 +71,10 @@ def assess_with_rules(sensor_data: SensorData, building_context: BuildingContext
             status=_to_result_status(status),
             confidence=FALLBACK_CONFIDENCE_SCORE,
             contributing_sensors=GROUP_CONTRIBUTING_SENSORS[group],
+            feature_weights=_rule_based_uniform_weights(group),
+            threshold_description=build_threshold_description(
+                group, sensor_data, building_context
+            ),
         )
         for group, status in group_statuses.items()
     ]

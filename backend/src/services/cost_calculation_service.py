@@ -32,6 +32,7 @@ class MaterialLineItem:
     is_estimated_price: bool
     is_reuse: bool = False
     material_id: str | None = None
+    work_description: str = ""
 
     @property
     def line_cost(self) -> float:
@@ -155,6 +156,7 @@ class CostCalculationService:
                     is_estimated_price=is_estimated,
                     is_reuse=candidate.reuse_oriented if candidate else False,
                     material_id=material_id,
+                    work_description=req.work_description,
                 )
             )
         return line_items

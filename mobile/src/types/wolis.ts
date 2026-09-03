@@ -35,11 +35,19 @@ export interface CreateMeasurementResponse {
   created_at: string;
 }
 
+export interface FeatureWeight {
+  sensor: string;
+  weight: number;
+  label: string;
+}
+
 export interface ParameterFlag {
   group: string;
   status: Status;
   confidence: number;
   contributing_sensors: string[];
+  feature_weights: FeatureWeight[];
+  threshold_description: string;
 }
 
 export interface AssessmentSummary {
@@ -59,6 +67,7 @@ export interface MaterialLineItemSummary {
   unit_price_at_calculation: number;
   is_estimated_price: boolean;
   line_cost: number;
+  work_description: string;
 }
 
 export interface SolutionSummary {
@@ -89,10 +98,21 @@ export interface MeasurementSummary {
   overall_risk_score: number | null;
 }
 
+export interface SensorReadings {
+  temperature_c: number;
+  humidity_pct: number;
+  pressure_hpa: number;
+  illuminance_lux: number;
+  tilt_angle_deg: number;
+  vibration_magnitude: number;
+  shock_detected: boolean;
+}
+
 export interface WolisResult {
   measurement: MeasurementSummary;
   assessment: AssessmentSummary;
   solutions: SolutionSummary[];
+  sensor_readings?: SensorReadings;
 }
 
 export interface ApiErrorBody {

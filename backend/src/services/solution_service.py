@@ -17,6 +17,7 @@ class MaterialRequirement:
     material_name: str
     quantity: float
     unit: str
+    work_description: str = ""
 
 
 @dataclass
@@ -91,6 +92,15 @@ CONCERN_TO_GROUP: dict[str, str] = {
     "insufficient_natural_light": "lighting",
 }
 
+CONCERN_TO_WORK_DESCRIPTION: dict[str, str] = {
+    "high_tilt":                  "Усиление фундамента и несущих конструкций",
+    "structural_vibration":       "Виброизоляция несущих элементов",
+    "shock_event_detected":       "Ремонт после ударной нагрузки",
+    "moisture_risk":              "Гидроизоляция ограждающих конструкций",
+    "extreme_temperature":        "Теплоизоляция",
+    "extreme_pressure":           "Герметизация ограждающих конструкций",
+    "insufficient_natural_light": "Модернизация системы освещения",
+}
 
 class SolutionGenerationService:
     def generate_solutions(
@@ -152,6 +162,7 @@ class SolutionGenerationService:
 
         for concern in concerns:
             candidates = CONCERN_TO_MATERIALS.get(concern, [])
+            work_desc = CONCERN_TO_WORK_DESCRIPTION.get(concern, "")
 
             if config.prefer_reuse:
                 candidates = SolutionGenerationService._apply_eco_reuse_preference(candidates)
@@ -171,6 +182,7 @@ class SolutionGenerationService:
                         material_name=candidate.material_name,
                         quantity=round(quantity, 3),
                         unit=candidate.unit,
+                        work_description=work_desc,
                     )
 
         return list(collected.values())

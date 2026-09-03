@@ -3,6 +3,7 @@ import traceback
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from src.api.exceptions import (
     ExternalServiceError,
     NotFoundError,
@@ -31,7 +32,7 @@ def register_error_handlers(app: FastAPI) -> None:
             content=ErrorResponse(
                 error_code="VALIDATION_ERROR",
                 message="Request payload validation failed.",
-                details={"errors": exc.errors()},
+                details={"errors": jsonable_encoder(exc.errors())},
             ).model_dump(),
         )
  

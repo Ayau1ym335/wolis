@@ -12,6 +12,8 @@ from ..types.api_schemas import (
     MeasurementCreateResponse,
     MeasurementHistoryItem,
     MeasurementResultResponse,
+    MaterialLineItemResponse,
+    SensorReadings,
     SolutionResultItem,
 )
 from ..types.building_context import BuildingContext
@@ -154,15 +156,17 @@ class MeasurementService:
                     sol_rows = self._solution_repository.get_by_assessment_id(assessment_row.id)
                     for sw in sol_rows:
                         line_items = [
-                            {
-                                "material_name": sm.material.name,
-                                "quantity": sm.quantity,
-                                "unit": sm.material.unit,
-                                "unit_price_at_calculation": float(sm.unit_price_at_calculation),
-                                "is_estimated_price": False,
-                                "line_cost": float(sm.quantity) * float(sm.unit_price_at_calculation),
-                            }
+                            MaterialLineItemResponse(
+                                material_name=sm.material.name,
+                                quantity=float(sm.quantity),
+                                unit=sm.material.unit,
+                                unit_price_at_calculation=float(sm.unit_price_at_calculation),
+                                is_estimated_price=False,
+                                line_cost=float(sm.quantity) * float(sm.unit_price_at_calculation),
+                                work_description=getattr(sm, "work_description", "") or "",
+                            )
                             for sm in sw.materials
+                            if sm.material is not None
                         ]
                         required_changes = sw.solution.required_changes or []
                         if isinstance(required_changes, str):
@@ -183,10 +187,22 @@ class MeasurementService:
                             )
                         )
 
+        # Build sensor readings for explainability
+        sensor_readings = SensorReadings(
+            temperature_c=session.temperature_c,
+            humidity_pct=session.humidity_pct,
+            pressure_hpa=session.pressure_hpa,
+            illuminance_lux=session.illuminance_lux,
+            tilt_angle_deg=session.tilt_angle_deg,
+            vibration_magnitude=session.vibration_magnitude,
+            shock_detected=session.shock_detected,
+        )
+
         return MeasurementResultResponse(
             measurement=measurement,
             assessment=assessment_domain,
             solutions=solutions,
+            sensor_readings=sensor_readings,
         )
 
     @staticmethod

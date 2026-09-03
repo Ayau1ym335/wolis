@@ -68,10 +68,12 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions): P
       signal: controller.signal,
     });
   } catch (networkError) {
+    const realMessage = (networkError as Error)?.message ?? String(networkError);
+    console.error("[apiClient] fetch failed:", realMessage, networkError);
     if ((networkError as Error)?.name === "AbortError") {
-      throw new ApiError(0, "timeout", { error: "timeout" });
+      throw new ApiError(0, "timeout", { error: "timeout", message: "Превышено время ожидания запроса" });
     }
-    throw new ApiError(0, "network_error", { error: "network_error" });
+    throw new ApiError(0, "network_error", { error: "network_error", message: `Сетевая ошибка: ${realMessage}` });
   } finally {
     clearTimeout(timeoutId);
   }

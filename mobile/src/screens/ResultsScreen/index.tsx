@@ -84,6 +84,32 @@ function translateConcerns(concerns: string[]): string {
     .join(". ") + ".";
 }
 
+const CONCERN_TO_ELEMENT: Record<string, string> = {
+  high_tilt:                  "Фасад и фундамент",
+  structural_vibration:       "Несущие конструкции",
+  shock_event_detected:       "Несущие конструкции",
+  moisture_risk:              "Ограждающие конструкции",
+  extreme_temperature:        "Ограждающие конструкции",
+  extreme_pressure:           "Ограждающие конструкции",
+  insufficient_natural_light: "Внутренние помещения",
+};
+
+function formatSensorValue(sensor: string, readings: Record<string, number | boolean> | undefined): string {
+  if (!readings) return "";
+  const val = readings[sensor];
+  if (val === undefined) return "";
+  switch (sensor) {
+    case "tilt_angle_deg":      return `${(val as number).toFixed(2)}°`;
+    case "vibration_magnitude": return `${(val as number).toFixed(3)} g`;
+    case "humidity_pct":        return `${(val as number).toFixed(0)}%`;
+    case "temperature_c":       return `${(val as number).toFixed(1)}°C`;
+    case "pressure_hpa":        return `${(val as number).toFixed(0)} гПа`;
+    case "illuminance_lux":     return `${(val as number).toFixed(0)} лк`;
+    case "shock_detected":      return val ? "да" : "нет";
+    default:                    return String(val);
+  }
+}
+
 
 export interface ResultsScreenProps {
   result: WolisResult;
@@ -94,8 +120,9 @@ export interface ResultsScreenProps {
 }
 
 export default function ResultsScreen({ result, onNewMeasurement, onBack, onExportPdf }: ResultsScreenProps) {
-  const { assessment, solutions, measurement } = result;
+  const { assessment, solutions, measurement, sensor_readings } = result;
   const sessionId = measurement.session_id;
+  const readingsMap = sensor_readings as Record<string, number | boolean> | undefined;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -148,6 +175,26 @@ export default function ResultsScreen({ result, onNewMeasurement, onBack, onExpo
           </View>
         </View>
 
+        {/* Affected building elements derived from key_concerns */}
+        {assessment.key_concerns.length > 0 && (() => {
+          const elements = [...new Set(
+            assessment.key_concerns.map((c) => CONCERN_TO_ELEMENT[c]).filter(Boolean)
+          )];
+          if (elements.length === 0) return null;
+          return (
+            <View style={styles.section}>
+              <Text style={styles.sectionEyebrow}>ЗАТРОНУТЫЕ ЭЛЕМЕНТЫ</Text>
+              <View style={styles.elementsRow}>
+                {elements.map((el, i) => (
+                  <View key={i} style={styles.elementTag}>
+                    <Text style={styles.elementTagText}>{el}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          );
+        })()}
+
         {}
         {assessment.parameter_flags.length > 0 && (
           <View style={styles.section}>
@@ -155,6 +202,7 @@ export default function ResultsScreen({ result, onNewMeasurement, onBack, onExpo
             {assessment.parameter_flags.map((flag, i) => (
               <View key={i} style={styles.flagRow}>
                 <View style={{ flex: 1 }}>
+                  {/* Group name + confidence */}
                   <View style={styles.flagGroupRow}>
                     <Text style={styles.flagGroup}>
                       {GROUP_LABELS[flag.group] ?? flag.group}
@@ -163,13 +211,45 @@ export default function ResultsScreen({ result, onNewMeasurement, onBack, onExpo
                       {(flag.confidence * 100).toFixed(0)}%
                     </Text>
                   </View>
-                  {flag.contributing_sensors.length > 0 && (
+
+                  {/* Feature weights mini-bars (top-2) */}
+                  {flag.feature_weights?.length > 0 && (
+                    <View style={styles.featureWeightsRow}>
+                      {flag.feature_weights.slice(0, 2).map((fw, wi) => (
+                        <View key={wi} style={styles.featureWeightItem}>
+                          <View style={styles.featureWeightBarTrack}>
+                            <View
+                              style={[
+                                styles.featureWeightBarFill,
+                                { width: `${Math.round(fw.weight * 100)}%` as any },
+                              ]}
+                            />
+                          </View>
+                          <Text style={styles.featureWeightLabel}>
+                            {fw.label || SENSOR_LABELS[fw.sensor] || fw.sensor}
+                            {" "}{Math.round(fw.weight * 100)}%
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Per-instance threshold explanation */}
+                  {flag.threshold_description ? (
+                    <Text style={styles.thresholdDesc} numberOfLines={3}>
+                      {flag.threshold_description}
+                    </Text>
+                  ) : flag.contributing_sensors.length > 0 ? (
                     <Text style={styles.flagSensors}>
                       {flag.contributing_sensors
-                        .map((s) => SENSOR_LABELS[s] ?? s)
+                        .map((s) => {
+                          const label = SENSOR_LABELS[s] ?? s;
+                          const val = formatSensorValue(s, readingsMap);
+                          return val ? `${label}: ${val}` : label;
+                        })
                         .join(", ")}
                     </Text>
-                  )}
+                  ) : null}
                 </View>
                 <RiskBadge status={flag.status} size="sm" />
               </View>
@@ -380,12 +460,67 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     color: Colors.textSecondary,
   },
+  featureWeightsRow: {
+    marginTop: 5,
+    gap: 3,
+  },
+  featureWeightItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginBottom: 2,
+  },
+  featureWeightBarTrack: {
+    width: 60,
+    height: 4,
+    backgroundColor: Colors.border,
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  featureWeightBarFill: {
+    height: "100%",
+    backgroundColor: Colors.blushLight,
+    borderRadius: 2,
+  },
+  featureWeightLabel: {
+    fontFamily: "System",
+    fontSize: 9.5,
+    color: Colors.textSecondary,
+    flex: 1,
+  },
+  thresholdDesc: {
+    fontFamily: "System",
+    fontSize: 10.5,
+    color: Colors.textSecondary,
+    marginTop: 4,
+    lineHeight: 15,
+    fontStyle: "italic",
+  },
 
   
   buildingRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Spacing.sm,
+  },
+  elementsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+  },
+  elementTag: {
+    backgroundColor: "rgba(191,164,184,0.15)",
+    borderRadius: Radius.pill,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: "rgba(191,164,184,0.35)",
+  },
+  elementTagText: {
+    fontFamily: "System",
+    fontSize: 11,
+    color: Colors.blushLight,
+    fontWeight: "500",
   },
 
   

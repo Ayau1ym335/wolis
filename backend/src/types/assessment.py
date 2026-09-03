@@ -31,11 +31,22 @@ class ParameterGroup(str, Enum):
     CLIMATE = "climate"
     LIGHTING = "lighting"
 
+class FeatureWeight(BaseModel):
+    """Weight of a specific sensor feature in the group's decision."""
+    sensor: str
+    weight: float = Field(..., ge=0.0, le=1.0)
+    label: str = ""  # human-readable label, e.g. "Угол наклона"
+
 class ParameterFlag(BaseModel):
     group: ParameterGroup
     status: StatusLevel
     confidence: float = Field(..., ge=0.0, le=1.0)
     contributing_sensors: list[str] = Field(..., min_length=1)
+    feature_weights: list[FeatureWeight] = Field(default_factory=list)
+    """Top sensor feature importances for this group (from ML model or rule-based)."""
+    threshold_description: str = ""
+    """Per-instance explanation: e.g. 'Наклон 3.2° > нормы 0.9° для данного здания'."""
+
 
 class AssessmentResult(BaseModel):
     overall_risk_score: float = Field(..., ge=0, le=100)

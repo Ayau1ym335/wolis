@@ -37,6 +37,17 @@ class AssessmentResponse(BaseModel):
         return value
 
 
+class SensorReadings(BaseModel):
+    """Raw sensor values stored at measurement time — returned for explainability."""
+    temperature_c: float
+    humidity_pct: float
+    pressure_hpa: float
+    illuminance_lux: float
+    tilt_angle_deg: float
+    vibration_magnitude: float
+    shock_detected: bool
+
+
 class ErrorResponse(BaseModel):
     error_code: str
     message: str
@@ -57,6 +68,16 @@ class MeasurementHistoryItem(BaseModel):
     overall_risk_score: float | None = None
 
 
+class MaterialLineItemResponse(BaseModel):
+    material_name: str
+    quantity: float
+    unit: str
+    unit_price_at_calculation: float
+    is_estimated_price: bool
+    line_cost: float
+    work_description: str = ""
+
+
 class SolutionResultItem(BaseModel):
     type: str
     required_changes: list[str]
@@ -66,10 +87,11 @@ class SolutionResultItem(BaseModel):
     estimated_savings_resources_description: str
     baseline_cost_amount: float = 0.0
     baseline_cost_currency: str = "USD"
-    material_line_items: list[dict[str, Any]] = []
+    material_line_items: list[MaterialLineItemResponse] = []
 
 
 class MeasurementResultResponse(BaseModel):
     measurement: MeasurementHistoryItem
     assessment: AssessmentResult | None = None
     solutions: list[SolutionResultItem] = []
+    sensor_readings: SensorReadings | None = None

@@ -164,7 +164,11 @@ export default function WolisNavigator() {
           }
         }
         const message =
-          err instanceof Error ? err.message : "Неизвестная ошибка при отправке данных.";
+          err instanceof ApiError
+            ? (err.body?.message || err.message)
+            : err instanceof Error
+            ? err.message
+            : "Неизвестная ошибка при отправке данных.";
         setFlow({ step: "error", message, fromStep });
       }
     },
